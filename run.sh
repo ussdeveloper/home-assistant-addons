@@ -20,5 +20,12 @@ done
 
 echo "Cron jobs created. Starting cron daemon..."
 
-# Start cron daemon
-crond -f -l 8
+# Start cron daemon in background
+crond -f -l 8 &
+
+# Keep the container running
+echo "Addon started. Waiting..."
+while true; do
+    sleep 60
+    echo "Addon alive at $(date)"
+done
