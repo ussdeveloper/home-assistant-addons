@@ -287,7 +287,11 @@ app.get('/api/runs', (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v1.2.0 ===');
+  console.log('🎯 === Tauron Reader Addon v1.2.1 ===');
+  console.log('📅 Startup time:', new Date().toISOString());
+  console.log('🔧 Node.js version:', process.version);
+  console.log('📁 Working directory:', process.cwd());
+  console.log('🌐 Environment variables:', Object.keys(process.env).filter(k => k.includes('HASSIO')));
   
   // Test database
   const dbOk = await testDB();
@@ -305,9 +309,25 @@ async function start() {
   });
   
   // Start web server
+  const isIngress = process.env.HASSIO_TOKEN ? true : false;
   app.listen(PORT, () => {
     console.log(`🌐 HTTP server running on port ${PORT}`);
+    if (isIngress) {
+      console.log('🔗 Ingress mode: Available in Home Assistant sidebar');
+    } else {
+      console.log('🔗 Direct access: http://YOUR_HA_IP:${PORT}');
+    }
     console.log('✅ === Addon ready ===\n');
+    
+    // Log initial run for verification
+    console.log('🚀 Performing initial test run...');
+    setTimeout(() => {
+      fetchTauronData().then(() => {
+        console.log('✅ Initial test run completed');
+      }).catch(err => {
+        console.log('⚠️ Initial test run failed:', err.message);
+      });
+    }, 5000); // Wait 5 seconds after startup
   });
 }
 
