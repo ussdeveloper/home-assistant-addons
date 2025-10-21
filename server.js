@@ -19,9 +19,18 @@ try {
   process.exit(1);
 }
 
+// Mask password for logging
+const maskPassword = (password) => {
+  if (!password || password.length < 3) return '***';
+  return password[0] + '*'.repeat(password.length - 2) + password[password.length - 1];
+};
+
 console.log('📋 Config loaded:', {
   database: { host: config.database.host, user: config.database.user, name: config.database.name, table: config.database.table },
-  tauron: { username: config.tauron.username },
+  tauron: { 
+    username: config.tauron.username,
+    password: maskPassword(config.tauron.password)
+  },
   schedule: config.schedule.times,
   http: { port: config.http.port }
 });
@@ -54,32 +63,57 @@ async function testDB() {
 // Login to Tauron
 async function loginToTauron() {
   console.log('🔐 Logging into Tauron...');
+  console.log('👤 Username:', config.tauron.username);
+  console.log('🔑 Password:', maskPassword(config.tauron.password));
   
   const jar = axios.create({
     withCredentials: true,
-    timeout: 30000
+    timeout: 30000,
+    maxRedirects: 10,
+    validateStatus: function (status) {
+      return status >= 200 && status < 400; // Accept redirects
+    }
   });
 
   try {
+    console.log('📄 Step 1: Getting login page...');
     // Initial GET
-    await jar.get('https://elicznik.tauron-dystrybucja.pl/');
+    const initialResponse = await jar.get('https://elicznik.tauron-dystrybucja.pl/');
+    console.log('✅ Initial page loaded, status:', initialResponse.status);
     
+    console.log('🔐 Step 2: Sending login credentials...');
     // Login POST
-    const loginResponse = await jar.post('https://logowanie.tauron-dystrybucja.pl/login', new URLSearchParams({
+    const loginData = new URLSearchParams({
       username: config.tauron.username,
       password: config.tauron.password,
       service: 'https://elicznik.tauron-dystrybucja.pl'
-    }), {
+    });
+    
+    console.log('📤 Sending login data to: https://logowanie.tauron-dystrybucja.pl/login');
+    const loginResponse = await jar.post('https://logowanie.tauron-dystrybucja.pl/login', loginData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     });
     
-    console.log('✅ Tauron login successful');
-    return jar;
+    console.log('📥 Login response status:', loginResponse.status);
+    console.log('🔗 Final URL after login:', loginResponse.config.url);
+    
+    // Check if we're redirected to the main app
+    if (loginResponse.config.url && loginResponse.config.url.includes('elicznik.tauron-dystrybucja.pl')) {
+      console.log('✅ Tauron login successful');
+      return jar;
+    } else {
+      throw new Error('Login failed - not redirected to main application');
+    }
+    
   } catch (err) {
     console.log('❌ Tauron login failed:', err.message);
+    if (err.response) {
+      console.log('📄 Response status:', err.response.status);
+      console.log('🔗 Response URL:', err.response.config?.url);
+    }
     throw err;
   }
 }
@@ -287,7 +321,7 @@ app.get('/api/runs', (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v1.2.1 ===');
+  console.log('🎯 === Tauron Reader Addon v1.2.2 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
