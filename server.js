@@ -134,6 +134,12 @@ async function loginToTauron() {
     });
     
     console.log('📥 Login response status:', loginResponse.status);
+    console.log('📄 Login response first 200 chars:', loginResponse.data ? loginResponse.data.substring(0, 200) : 'No data');
+    
+    // Save login response for debugging
+    if (loginResponse.data) {
+      saveRawData(loginResponse.data, 'login');
+    }
     
     // Check status like Go version
     if (loginResponse.status !== 200 && loginResponse.status !== 302) {
@@ -193,6 +199,24 @@ async function fetchData(client) {
     
     console.log('✅ CSV data received, status:', response.status);
     console.log('📊 Data length:', response.data.length, 'characters');
+    console.log('📄 First 200 chars:', response.data.substring(0, 200));
+    
+    // Save raw data for debugging
+    const rawFile = saveRawData(response.data, 'csv');
+    
+    // Check if response is actually CSV or HTML error page
+    if (response.data.includes('<html') || response.data.includes('<!DOCTYPE')) {
+      console.log('❌ Received HTML instead of CSV - likely login/auth failure');
+      console.log('🔍 Raw data saved to:', rawFile);
+      throw new Error('Received HTML page instead of CSV data - authentication may have failed');
+    }
+    
+    // Check if response looks like CSV
+    if (!response.data.includes(';') && !response.data.includes('Data')) {
+      console.log('❌ Response does not look like CSV data');
+      console.log('🔍 Raw data saved to:', rawFile);
+      throw new Error('Response does not appear to be CSV format');
+    }
 
     // Parse CSV
     const records = parse(response.data, {
@@ -264,6 +288,7 @@ async function fetchData(client) {
     
   } catch (err) {
     console.log('❌ Data fetch failed:', err.message);
+    console.log('🔍 Check raw data files in /data/buffer/ for debugging');
     throw err;
   }
 }
@@ -308,6 +333,23 @@ function logRun(status, records, message) {
     fs.appendFileSync('/data/buffer/runs.log.jsonl', JSON.stringify(logEntry) + '\n');
   } catch (err) {
     console.log('⚠️ Failed to save log:', err.message);
+  }
+}
+
+// Save raw data for debugging
+function saveRawData(data, type = 'csv') {
+  try {
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `raw_${type}_${timestamp}.txt`;
+    
+    fs.mkdirSync('/data/buffer', { recursive: true });
+    fs.writeFileSync(`/data/buffer/${filename}`, data);
+    console.log(`💾 Saved raw data to: ${filename} (${data.length} chars)`);
+    return filename;
+  } catch (err) {
+    console.log('⚠️ Failed to save raw data:', err.message);
+    return null;
   }
 }
 
@@ -467,7 +509,7 @@ app.get('/api/cache', (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v1.2.5 ===');
+  console.log('🎯 === Tauron Reader Addon v1.2.6 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
