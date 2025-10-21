@@ -1,0 +1,42 @@
+name: Tauron Reader
+version: "1.0.3"
+slug: tauron_reader_v2
+description: Addon to fetch energy data from Tauron eLicznik and insert into MySQL database
+url: "https://github.com/ussdeveloper/tauron-e-licznik-reader"
+arch:
+  - amd64
+  - armv7
+  - aarch64
+startup: services
+boot: auto
+options:
+  database:
+    host: "localhost"
+    port: 3306
+    user: "user"
+    password: "password"
+    name: "database"
+    table: "energy_extend"
+  tauron:
+    username: "your_tauron_username"
+    password: "your_tauron_password"
+  schedule:
+    times: ["02:00", "10:00"]
+  http:
+    port: 8765
+schema:
+  database:
+    host: str
+    port: int
+    user: str
+    password: password
+    name: str
+    table: str
+  tauron:
+    username: str
+    password: password
+  schedule:
+    times:
+      - str
+  http:
+    port: int

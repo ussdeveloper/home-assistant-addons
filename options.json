@@ -1,0 +1,20 @@
+{
+  "database": {
+    "host": "10.1.0.100",
+    "port": 3306,
+    "user": "ihs",
+    "password": "ihs_1212121212",
+    "name": "ihs",
+    "table": "tauron"
+  },
+  "tauron": {
+    "username": "usulaco@gmail.com",
+    "password": "!7Timl0kber"
+  },
+  "schedule": {
+    "times": ["02:00", "10:00", "14:30"]
+  },
+  "http": {
+    "port": 8765
+  }
+}
