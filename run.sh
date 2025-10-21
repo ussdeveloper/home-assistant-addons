@@ -14,11 +14,14 @@ fi
 # Create cron jobs
 echo "# Tauron Reader cron jobs" > /etc/crontabs/root
 for time in $SCHEDULE; do
-    echo "$time * * * /app/tauron-reader >> /proc/1/fd/1 2>&1" >> /etc/crontabs/root
+    echo "$time * * * /app/tauron-reader" >> /etc/crontabs/root
     echo "Added cron job: $time"
 done
 
-echo "Cron jobs created. Starting cron daemon..."
+echo "Cron jobs created. Starting cron daemon and HTTP server..."
+
+# Start HTTP server in background
+/app/tauron-reader --serve-only --http-port 8765 &
 
 # Start cron daemon in background
 crond -f -l 8 &

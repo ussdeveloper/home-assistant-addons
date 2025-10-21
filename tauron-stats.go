@@ -85,7 +85,7 @@ func main() {
 
 	// Serve-only mode for persistent status server (needs config for schedule)
 	if *serveOnly {
-		if err := startHTTPServer(*httpPort, times); err != nil {
+		if err := startHTTPServer(*httpPort, times, config); err != nil {
 			log.Fatal(err)
 		}
 		return
@@ -549,7 +549,7 @@ func readLastRuns(limit int) ([]RunRecord, error) {
 	return recs, nil
 }
 
-func startHTTPServer(port int, scheduleTimes []string) error {
+func startHTTPServer(port int, scheduleTimes []string, config *Config) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		recs, _ := readLastRuns(50)
@@ -562,6 +562,8 @@ func startHTTPServer(port int, scheduleTimes []string) error {
 			"<meta charset='utf-8'>"+
 			"<style>body{font-family:Segoe UI,Arial,sans-serif;margin:20px}h1{margin-top:0}table{border-collapse:collapse;width:100%%;max-width:1200px}td,th{border:1px solid #ddd;padding:8px}th{background:#f4f4f4;text-align:left}small{color:#666}ul{padding-left:20px}code{background:#f8f8f8;padding:2px 4px;border-radius:3px}</style></head><body>")
 		fmt.Fprintf(w, "<h1>Status odczytu Tauron</h1>")
+		fmt.Fprintf(w, "<button onclick=\"runNow()\">Uruchom teraz</button><br><br>")
+		fmt.Fprintf(w, "<script>function runNow(){fetch('/run-now').then(r=>alert('Rozpoczęto uruchomienie ręczne'))}</script>")
 		// Schedule times section
 		fmt.Fprintf(w, "<h3>Zaplanowane uruchomienia</h3><ul>")
 		for _, t := range scheduleTimes {
@@ -617,13 +619,47 @@ func startHTTPServer(port int, scheduleTimes []string) error {
 		}
 		json.NewEncoder(w).Encode(out)
 	})
-	mux.HandleFunc("/api/schedule", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(struct {
-			Times   []string `json:"times"`
-			Timezone string  `json:"timezone"`
-			Format   string  `json:"format"`
-		}{Times: scheduleTimes, Timezone: "Europe/Warsaw", Format: "HH:MM:SS DD/MM/YYYY"})
+	mux.HandleFunc("/run-now", func(w http.ResponseWriter, r *http.Request) {
+		go func() {
+			runStart := time.Now()
+			fmt.Println("Manual run started...")
+
+			db, err := connectDB(config)
+			if err != nil {
+				logRun(runStart, "error", 0, fmt.Sprintf("DB connect error: %v", err))
+				return
+			}
+			defer db.Close()
+
+			client, err := loginToTauron(config)
+			if err != nil {
+				logRun(runStart, "error", 0, fmt.Sprintf("Login error: %v", err))
+				return
+			}
+
+			data, err := fetchData(client, true)
+			if err != nil {
+				logRun(runStart, "error", 0, fmt.Sprintf("Fetch error: %v", err))
+				return
+			}
+
+			err = insertData(db, data, config.Database.Table, true)
+			if err != nil {
+				logRun(runStart, "error", len(data), fmt.Sprintf("Insert error: %v", err))
+				return
+			}
+
+			err = saveBufferToFile(data, "/data/buffer")
+			if err != nil {
+				logRun(runStart, "error", len(data), fmt.Sprintf("Buffer save error: %v", err))
+				return
+			}
+
+			logRun(runStart, "success", len(data), "manual run")
+			fmt.Println("Manual run completed.")
+		}()
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Manual run started. Check logs for status."))
 	})
 	srv := &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}
 	return srv.ListenAndServe()
