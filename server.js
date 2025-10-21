@@ -115,13 +115,20 @@ async function loginToTauron() {
     const loginURL = 'https://logowanie.tauron-dystrybucja.pl/login';
     
     // URL encode exactly like Node-RED: usulaco%40gmail.com&password=%217Timl0kber
+    // Let's test with exact payload from Node-RED first
+    const nodeRedPayload = 'username=usulaco%40gmail.com&password=%217Timl0kber&service=https%3A%2F%2Felicznik.tauron-dystrybucja.pl';
+    
+    // Also prepare encoded version as backup
     const encodedUsername = encodeURIComponent(config.tauron.username);
     const encodedPassword = encodeURIComponent(config.tauron.password);
     const encodedService = encodeURIComponent('https://elicznik.tauron-dystrybucja.pl');
+    const dynamicPayload = `username=${encodedUsername}&password=${encodedPassword}&service=${encodedService}`;
     
-    const loginData = `username=${encodedUsername}&password=${encodedPassword}&service=${encodedService}`;
+    // Use Node-RED exact payload for now
+    const loginData = nodeRedPayload;
     
-    console.log('📤 Login payload:', `username=${encodedUsername}&password=${maskPassword(encodedPassword)}&service=${encodedService}`);
+    console.log('📤 Login payload (Node-RED exact):', nodeRedPayload);
+    console.log('📤 Login payload (dynamic):', `username=${encodedUsername}&password=${maskPassword(config.tauron.password)}&service=${encodedService}`);
 
     const loginResponse = await client.post(loginURL, loginData, {
       headers: {
@@ -129,10 +136,10 @@ async function loginToTauron() {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.82 Safari/537.36',
         'Accept': 'application/json, text/javascript, */*; q=0.01',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'PHPSESSID': phpSessionId.value
+        'Connection': 'keep-alive'
+        // Remove PHPSESSID from headers - let cookies handle it
       },
-      maxRedirects: 5 // Allow redirects and capture them
+      maxRedirects: 10 // Allow more redirects like Node-RED followRedirects=true
     });
     
     console.log('📥 Login response status:', loginResponse.status);
@@ -503,7 +510,7 @@ app.get('/api/cache', (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v1.2.8 ===');
+  console.log('🎯 === Tauron Reader Addon v1.2.9 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
