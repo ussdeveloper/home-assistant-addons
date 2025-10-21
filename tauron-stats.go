@@ -635,44 +635,60 @@ func startHTTPServer(port int, scheduleTimes []string, config *Config) error {
 	mux.HandleFunc("/run-now", func(w http.ResponseWriter, r *http.Request) {
 		go func() {
 			runStart := time.Now()
-			fmt.Println("Manual run started...")
+			fmt.Println("=== Manual run started ===")
+			fmt.Printf("Start time: %s\n", runStart.Format(time.RFC3339))
 
+			fmt.Println("Connecting to database...")
 			db, err := connectDB(config)
 			if err != nil {
+				fmt.Printf("ERROR: DB connect error: %v\n", err)
 				logRun(runStart, "error", 0, fmt.Sprintf("DB connect error: %v", err))
 				return
 			}
 			defer db.Close()
+			fmt.Println("Database connected successfully")
 
+			fmt.Println("Logging in to Tauron...")
 			client, err := loginToTauron(config)
 			if err != nil {
+				fmt.Printf("ERROR: Login error: %v\n", err)
 				logRun(runStart, "error", 0, fmt.Sprintf("Login error: %v", err))
 				return
 			}
+			fmt.Println("Tauron login successful")
 
+			fmt.Println("Fetching data from Tauron...")
 			data, err := fetchData(client, true)
 			if err != nil {
+				fmt.Printf("ERROR: Fetch error: %v\n", err)
 				logRun(runStart, "error", 0, fmt.Sprintf("Fetch error: %v", err))
 				return
 			}
+			fmt.Printf("Fetched %d records from Tauron\n", len(data))
 
+			fmt.Println("Inserting data into database...")
 			err = insertData(db, data, config.Database.Table, true)
 			if err != nil {
+				fmt.Printf("ERROR: Insert error: %v\n", err)
 				logRun(runStart, "error", len(data), fmt.Sprintf("Insert error: %v", err))
 				return
 			}
+			fmt.Printf("Inserted %d records into database\n", len(data))
 
+			fmt.Println("Saving buffer file...")
 			err = saveBufferToFile(data, "/data/buffer")
 			if err != nil {
+				fmt.Printf("ERROR: Buffer save error: %v\n", err)
 				logRun(runStart, "error", len(data), fmt.Sprintf("Buffer save error: %v", err))
 				return
 			}
+			fmt.Println("Buffer saved successfully")
 
 			logRun(runStart, "success", len(data), "manual run")
-			fmt.Println("Manual run completed.")
+			fmt.Printf("=== Manual run completed successfully in %dms ===\n", time.Since(runStart).Milliseconds())
 		}()
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Manual run started. Check logs for status."))
+		w.Write([]byte("Manual run started. Check logs for detailed status."))
 	})
 	mux.HandleFunc("/api/schedule", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
