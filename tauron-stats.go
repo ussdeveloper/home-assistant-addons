@@ -60,7 +60,7 @@ func main() {
 	// Try addon config first, fallback to local config
 	var config *Config
 	var err error
-	
+
 	if _, err := os.Stat("/data/options.json"); err == nil {
 		config, err = loadConfig("/data/options.json")
 		if err != nil {
@@ -693,9 +693,9 @@ func startHTTPServer(port int, scheduleTimes []string, config *Config) error {
 	mux.HandleFunc("/api/schedule", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(struct {
-			Times   []string `json:"times"`
-			Timezone string  `json:"timezone"`
-			Format   string  `json:"format"`
+			Times    []string `json:"times"`
+			Timezone string   `json:"timezone"`
+			Format   string   `json:"format"`
 		}{Times: scheduleTimes, Timezone: "Europe/Warsaw", Format: "HH:MM:SS DD/MM/YYYY"})
 	})
 	srv := &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}

@@ -1,21 +1,19 @@
-FROM alpine:latest
-
-# Install Go and cron
-RUN apk add --no-cache go dcron jq
+FROM node:18-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Copy Go modules
-COPY go.mod go.sum ./
-RUN go mod download
+# Copy package files
+COPY package.json ./
 
-# Copy source code
-COPY tauron-stats.go ./
+# Install dependencies
+RUN npm install --production
 
-# Build the application
-RUN go build -o tauron-reader .
+# Copy application
+COPY server.js ./
 
-# Copy run script
-COPY run.sh /run.sh
-RUN chmod +x /run.sh
+# Expose port
+EXPOSE 8765
+
+# Start application
+CMD ["npm", "start"]
