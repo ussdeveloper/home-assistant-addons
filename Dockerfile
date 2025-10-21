@@ -7,11 +7,11 @@ RUN apk add --no-cache go dcron
 WORKDIR /app
 
 # Copy Go modules
-COPY tauron-stats/go.mod tauron-stats/go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy source code
-COPY tauron-stats/ ./
+COPY tauron-stats.go ./
 
 # Build the application
 RUN go build -o tauron-reader .
