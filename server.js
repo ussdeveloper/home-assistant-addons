@@ -5,6 +5,8 @@ const { parse } = require('csv-parse/sync');
 const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
+const https = require('https');
 const { CookieJar } = require('tough-cookie');
 const { wrapper } = require('axios-cookiejar-support');
 
@@ -390,7 +392,7 @@ app.get('/api/runs', (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v1.4.0 ===');
+  console.log('🎯 === Tauron Reader Addon v1.4.1 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
