@@ -1,7 +1,7 @@
 FROM alpine:latest
 
 # Install Go and cron
-RUN apk add --no-cache go dcron
+RUN apk add --no-cache go dcron jq
 
 # Set working directory
 WORKDIR /app
