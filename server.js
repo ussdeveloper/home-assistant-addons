@@ -62,7 +62,7 @@ async function testDB() {
   }
 }
 
-// Login to Tauron - exact copy of Go implementation
+// Login to Tauron - simplified approach
 async function loginToTauron() {
   console.log('🔐 Logging into Tauron...');
   console.log('👤 Username:', config.tauron.username);
@@ -73,7 +73,11 @@ async function loginToTauron() {
   const client = wrapper(axios.create({
     jar,
     timeout: 30000,
-    withCredentials: true
+    withCredentials: true,
+    maxRedirects: 5, // Allow some redirects but not infinite
+    validateStatus: function (status) {
+      return status >= 200 && status < 400; // Accept success and redirects
+    }
   }));
 
   try {
@@ -82,7 +86,7 @@ async function loginToTauron() {
     const initialResponse = await client.get('https://elicznik.tauron-dystrybucja.pl/');
     console.log('✅ Initial GET completed, status:', initialResponse.status);
     
-    console.log('🔐 Step 2: POST login with redirect handling...');
+    console.log('🔐 Step 2: POST login...');
     
     // POST login data - exactly like Go
     const loginURL = 'https://logowanie.tauron-dystrybucja.pl/login';
@@ -91,39 +95,6 @@ async function loginToTauron() {
       password: config.tauron.password,
       service: 'https://elicznik.tauron-dystrybucja.pl'
     });
-
-    // Manual redirect handling like Go's CheckRedirect
-    let redirectCount = 0;
-    const originalRequest = client.request;
-    client.request = async function(config) {
-      try {
-        const response = await originalRequest.call(this, config);
-        return response;
-      } catch (error) {
-        if (error.response && [301, 302, 303, 307, 308].includes(error.response.status)) {
-          redirectCount++;
-          console.log(`🔀 Redirect ${redirectCount}: ${error.response.status} -> ${error.response.headers.location}`);
-          
-          if (redirectCount >= 2) {
-            console.log('🔀 Stopping after 2 redirects (like Go ErrUseLastResponse)');
-            return error.response; // Return last response like Go
-          }
-          
-          const location = error.response.headers.location;
-          if (location) {
-            // Follow redirect manually
-            const redirectConfig = {
-              ...config,
-              method: 'GET',
-              url: location,
-              data: undefined
-            };
-            return await this.request(redirectConfig);
-          }
-        }
-        throw error;
-      }
-    };
 
     const loginResponse = await client.post(loginURL, loginData, {
       headers: {
@@ -134,23 +105,22 @@ async function loginToTauron() {
     });
     
     console.log('📥 Login response status:', loginResponse.status);
-    console.log('📄 Login response first 200 chars:', loginResponse.data ? loginResponse.data.substring(0, 200) : 'No data');
+    console.log('� Login final URL:', loginResponse.request?.res?.responseUrl || loginResponse.config?.url);
     
     // Save login response for debugging
     if (loginResponse.data) {
       saveRawData(loginResponse.data, 'login');
     }
     
-    // Check status like Go version
-    if (loginResponse.status !== 200 && loginResponse.status !== 302) {
-      throw new Error(`login failed with status ${loginResponse.status}`);
+    // Check if we ended up on the right domain after redirects
+    const finalUrl = loginResponse.request?.res?.responseUrl || loginResponse.config?.url || '';
+    if (!finalUrl.includes('elicznik.tauron-dystrybucja.pl')) {
+      console.log('❌ Not redirected to main app - login likely failed');
+      console.log('🔗 Final URL:', finalUrl);
+      throw new Error('Login failed - not redirected to main application');
     }
     
-    console.log('✅ Tauron login successful');
-    
-    // Restore original request method
-    client.request = originalRequest;
-    
+    console.log('✅ Tauron login successful - redirected to main app');
     return client;
     
   } catch (err) {
@@ -206,9 +176,17 @@ async function fetchData(client) {
     
     // Check if response is actually CSV or HTML error page
     if (response.data.includes('<html') || response.data.includes('<!DOCTYPE')) {
-      console.log('❌ Received HTML instead of CSV - likely login/auth failure');
+      console.log('❌ Received HTML instead of CSV - authentication failed');
+      console.log('🔍 This means we are not properly logged in');
       console.log('🔍 Raw data saved to:', rawFile);
-      throw new Error('Received HTML page instead of CSV data - authentication may have failed');
+      
+      // Try to extract useful info from HTML
+      const titleMatch = response.data.match(/<title[^>]*>([^<]+)<\/title>/i);
+      if (titleMatch) {
+        console.log('📄 HTML page title:', titleMatch[1]);
+      }
+      
+      throw new Error('Authentication failed - redirected to login page instead of getting CSV data');
     }
     
     // Check if response looks like CSV
@@ -509,7 +487,7 @@ app.get('/api/cache', (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v1.2.6 ===');
+  console.log('🎯 === Tauron Reader Addon v1.2.7 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
