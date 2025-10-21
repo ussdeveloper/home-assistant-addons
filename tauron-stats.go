@@ -661,6 +661,14 @@ func startHTTPServer(port int, scheduleTimes []string, config *Config) error {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Manual run started. Check logs for status."))
 	})
+	mux.HandleFunc("/api/schedule", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(struct {
+			Times   []string `json:"times"`
+			Timezone string  `json:"timezone"`
+			Format   string  `json:"format"`
+		}{Times: scheduleTimes, Timezone: "Europe/Warsaw", Format: "HH:MM:SS DD/MM/YYYY"})
+	})
 	srv := &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}
 	return srv.ListenAndServe()
 }
