@@ -62,109 +62,81 @@ async function testDB() {
   }
 }
 
-// Save raw data for debugging
-function saveRawData(data, type = 'csv') {
-  try {
-    const now = new Date();
-    const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const filename = `raw_${type}_${timestamp}.txt`;
-    
-    fs.mkdirSync('/data/buffer', { recursive: true });
-    fs.writeFileSync(`/data/buffer/${filename}`, data);
-    console.log(`💾 Saved raw data to: ${filename} (${data.length} chars)`);
-    return filename;
-  } catch (err) {
-    console.log('⚠️ Failed to save raw data:', err.message);
-    return null;
-  }
-}
-
-// Login to Tauron - based on Node-RED implementation
+// Login to Tauron - simplified approach
 async function loginToTauron() {
   console.log('🔐 Logging into Tauron...');
   console.log('👤 Username:', config.tauron.username);
   console.log('🔑 Password:', maskPassword(config.tauron.password));
   
-  // Create cookie jar like Node-RED
+  // Create cookie jar like Go's cookiejar.New(nil)
   const jar = new CookieJar();
   const client = wrapper(axios.create({
     jar,
     timeout: 30000,
-    withCredentials: true
+    withCredentials: true,
+    maxRedirects: 5, // Allow some redirects but not infinite
+    validateStatus: function (status) {
+      return status >= 200 && status < 400; // Accept success and redirects
+    }
   }));
 
   try {
     console.log('📄 Step 1: Initial GET to get cookies...');
-    // Initial GET to get cookies - exactly like Node-RED
+    // Initial GET to get cookies - exactly like Go
     const initialResponse = await client.get('https://elicznik.tauron-dystrybucja.pl/');
     console.log('✅ Initial GET completed, status:', initialResponse.status);
     
-    // Extract PHPSESSID from cookies like Node-RED
-    const cookies = await jar.getCookies('https://elicznik.tauron-dystrybucja.pl/');
-    const phpSessionId = cookies.find(cookie => cookie.key === 'PHPSESSID');
+    console.log('🔐 Step 2: POST login...');
     
-    if (!phpSessionId) {
-      throw new Error('PHPSESSID cookie not found');
-    }
-    
-    console.log('🍪 Found PHPSESSID:', phpSessionId.value.substring(0, 10) + '...');
-    
-    console.log('🔐 Step 2: POST login with URL encoding...');
-    
-    // POST login data - URL encoded like Node-RED
+    // POST login data - exactly like Go
     const loginURL = 'https://logowanie.tauron-dystrybucja.pl/login';
-    
-    // URL encode exactly like Node-RED: usulaco%40gmail.com&password=%217Timl0kber
-    const encodedUsername = encodeURIComponent(config.tauron.username);
-    const encodedPassword = encodeURIComponent(config.tauron.password);
-    const encodedService = encodeURIComponent('https://elicznik.tauron-dystrybucja.pl');
-    
-    const loginData = `username=${encodedUsername}&password=${encodedPassword}&service=${encodedService}`;
-    
-    console.log('📤 Login payload:', `username=${encodedUsername}&password=${maskPassword(encodedPassword)}&service=${encodedService}`);
+    const loginData = new URLSearchParams({
+      username: config.tauron.username,
+      password: config.tauron.password,
+      service: 'https://elicznik.tauron-dystrybucja.pl'
+    });
 
     const loginResponse = await client.post(loginURL, loginData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.82 Safari/537.36',
-        'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'PHPSESSID': phpSessionId.value
-      },
-      maxRedirects: 5 // Allow redirects and capture them
+        'Accept': 'application/json, text/javascript, */*; q=0.01'
+      }
     });
     
     console.log('📥 Login response status:', loginResponse.status);
-    console.log('🔗 Login final URL:', loginResponse.request?.res?.responseUrl || loginResponse.config?.url);
+    console.log('� Login final URL:', loginResponse.request?.res?.responseUrl || loginResponse.config?.url);
     
     // Save login response for debugging
     if (loginResponse.data) {
       saveRawData(loginResponse.data, 'login');
     }
     
-    // Check if we have redirects (like Node-RED checks redirectList)
+    // Check if we ended up on the right domain after redirects
     const finalUrl = loginResponse.request?.res?.responseUrl || loginResponse.config?.url || '';
-    console.log('🔍 Checking final URL:', finalUrl);
-    
-    if (finalUrl.includes('elicznik.tauron-dystrybucja.pl')) {
-      console.log('✅ Tauron login successful - redirected to main app');
-      return client;
-    } else {
+    if (!finalUrl.includes('elicznik.tauron-dystrybucja.pl')) {
+      console.log('❌ Not redirected to main app - login likely failed');
+      console.log('🔗 Final URL:', finalUrl);
       throw new Error('Login failed - not redirected to main application');
     }
+    
+    console.log('✅ Tauron login successful - redirected to main app');
+    return client;
     
   } catch (err) {
     console.log('❌ Tauron login failed:', err.message);
     if (err.response) {
       console.log('📄 Response status:', err.response.status);
       console.log('📄 Response headers:', Object.keys(err.response.headers));
+      if (err.response.status === 451) {
+        console.log('🚫 Status 451: Unavailable for legal reasons - possible geo-blocking');
+      }
     }
     throw err;
   }
 }
 
-// Fetch data from Tauron - like Node-RED with redirect cookies
+// Fetch data from Tauron
 async function fetchData(client) {
   console.log('📊 Fetching data from Tauron...');
   
@@ -182,8 +154,7 @@ async function fetchData(client) {
   const startDateStr = formatDate(startDate);
   const endDateStr = formatDate(now);
   
-  // URL encode parameters like Node-RED: form%5Bfrom%5D=...
-  const url = `https://elicznik.tauron-dystrybucja.pl/energia/do/dane?form%5Bfrom%5D=${startDateStr}&form%5Bto%5D=${endDateStr}&form%5Btype%5D=godzin&form%5Benergy%5D%5Bnetto%5D=1&form%5Benergy%5D%5Bnetto_oze%5D=1&form%5BfileType%5D=CSV`;
+  const url = `https://elicznik.tauron-dystrybucja.pl/energia/do/dane?form[from]=${startDateStr}&form[to]=${endDateStr}&form[type]=godzin&form[energy][netto]=1&form[energy][netto_oze]=1&form[fileType]=CSV`;
   
   console.log('📅 Date range:', startDateStr, 'to', endDateStr);
   console.log('🔗 Data URL:', url);
@@ -192,12 +163,8 @@ async function fetchData(client) {
     const response = await client.get(url, {
       headers: {
         'User-Agent': 'PostmanRuntime/7.29.2',
-        'Accept': '*/*',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Accept-Encoding': 'gzip, deflate, br'
-      },
-      maxRedirects: 0 // Don't follow redirects like Node-RED
+        'Accept': '*/*'
+      }
     });
     
     console.log('✅ CSV data received, status:', response.status);
@@ -344,6 +311,23 @@ function logRun(status, records, message) {
     fs.appendFileSync('/data/buffer/runs.log.jsonl', JSON.stringify(logEntry) + '\n');
   } catch (err) {
     console.log('⚠️ Failed to save log:', err.message);
+  }
+}
+
+// Save raw data for debugging
+function saveRawData(data, type = 'csv') {
+  try {
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `raw_${type}_${timestamp}.txt`;
+    
+    fs.mkdirSync('/data/buffer', { recursive: true });
+    fs.writeFileSync(`/data/buffer/${filename}`, data);
+    console.log(`💾 Saved raw data to: ${filename} (${data.length} chars)`);
+    return filename;
+  } catch (err) {
+    console.log('⚠️ Failed to save raw data:', err.message);
+    return null;
   }
 }
 
@@ -503,7 +487,7 @@ app.get('/api/cache', (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v1.2.8 ===');
+  console.log('🎯 === Tauron Reader Addon v1.2.7 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
