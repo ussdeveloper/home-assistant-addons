@@ -1,6 +1,21 @@
 #!/bin/sh
 
 echo "Starting Tauron Reader addon..."
+echo "Debug: Checking config file..."
+if [ -f /data/options.json ]; then
+    echo "Config file exists:"
+    cat /data/options.json
+else
+    echo "WARNING: /data/options.json not found!"
+fi
+
+# Test the binary
+echo "Testing tauron-reader binary..."
+/app/tauron-reader --test-db
+if [ $? -ne 0 ]; then
+    echo "ERROR: Database test failed"
+    exit 1
+fi
 
 # Read config and create cron jobs
 if [ -f /data/options.json ]; then

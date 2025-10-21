@@ -57,9 +57,22 @@ type RunRecord struct {
 }
 
 func main() {
-	config, err := loadConfig("/data/options.json")
-	if err != nil {
-		log.Fatal("Error loading config:", err)
+	// Try addon config first, fallback to local config
+	var config *Config
+	var err error
+	
+	if _, err := os.Stat("/data/options.json"); err == nil {
+		config, err = loadConfig("/data/options.json")
+		if err != nil {
+			log.Fatal("Error loading addon config:", err)
+		}
+		fmt.Println("Loaded addon config from /data/options.json")
+	} else {
+		config, err = loadConfig("tauron-db-config.json")
+		if err != nil {
+			log.Fatal("Error loading config:", err)
+		}
+		fmt.Println("Loaded config from tauron-db-config.json")
 	}
 
 	// Set default HTTP port from config, or 8765 if not set
