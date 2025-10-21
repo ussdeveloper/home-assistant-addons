@@ -144,8 +144,15 @@ async function loginToTauron() {
       console.log('🔀 Following redirect to:', redirectLocation);
       
       if (redirectLocation) {
+        // Handle relative URLs
+        const absoluteRedirect = redirectLocation.startsWith('http') 
+          ? redirectLocation 
+          : `https://logowanie.tauron-dystrybucja.pl${redirectLocation}`;
+        
+        console.log('🔗 Absolute redirect URL:', absoluteRedirect);
+        
         try {
-          const redirectResponse = await client.get(redirectLocation, {
+          const redirectResponse = await client.get(absoluteRedirect, {
             maxRedirects: 0,
             validateStatus: function (status) {
               return status >= 200 && status < 400;
@@ -159,12 +166,20 @@ async function loginToTauron() {
             console.log('🔀 Following 2nd redirect to:', secondRedirect);
             
             if (secondRedirect) {
-              const finalResponse = await client.get(secondRedirect);
+              const absoluteSecondRedirect = secondRedirect.startsWith('http')
+                ? secondRedirect
+                : `https://logowanie.tauron-dystrybucja.pl${secondRedirect}`;
+              
+              console.log('🔗 Absolute 2nd redirect URL:', absoluteSecondRedirect);
+              
+              const finalResponse = await client.get(absoluteSecondRedirect);
               console.log('✅ Final redirect status:', finalResponse.status);
+              console.log('🔗 Final URL:', finalResponse.request?.res?.responseUrl || absoluteSecondRedirect);
             }
           }
         } catch (redirectErr) {
           console.log('⚠️ Redirect follow error:', redirectErr.message);
+          // Don't throw - cookies might still be set
         }
       }
       
@@ -227,10 +242,21 @@ async function fetchData(client) {
         'Connection': 'keep-alive',
         'Accept-Encoding': 'gzip, deflate, br'
       },
-      maxRedirects: 0 // Don't follow redirects like Node-RED
+      maxRedirects: 0, // Don't follow redirects like Node-RED
+      validateStatus: function (status) {
+        return status >= 200 && status < 400; // Accept 302 as valid to check
+      }
     });
     
     console.log('✅ CSV data received, status:', response.status);
+    
+    // If we got 302, we're not logged in properly - throw error
+    if (response.status === 302 || response.status === 301) {
+      const redirectTo = response.headers.location;
+      console.log('❌ Got redirect instead of CSV data, redirecting to:', redirectTo);
+      throw new Error('Not authenticated - redirected instead of getting CSV data');
+    }
+    
     console.log('📊 Data length:', response.data.length, 'characters');
     console.log('📄 First 200 chars:', response.data.substring(0, 200));
     
@@ -533,7 +559,7 @@ app.get('/api/cache', (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v1.3.0 ===');
+  console.log('🎯 === Tauron Reader Addon v1.3.1 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
