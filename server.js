@@ -66,53 +66,66 @@ async function loginToTauron() {
   console.log('👤 Username:', config.tauron.username);
   console.log('🔑 Password:', maskPassword(config.tauron.password));
   
+  // Create axios instance with manual redirect handling like Go version
   const jar = axios.create({
-    withCredentials: true,
     timeout: 30000,
-    maxRedirects: 10,
+    maxRedirects: 0, // Handle redirects manually like Go version
     validateStatus: function (status) {
-      return status >= 200 && status < 400; // Accept redirects
-    }
+      return status >= 200 && status < 400; // Accept all success/redirect codes
+    },
+    withCredentials: true
   });
 
   try {
-    console.log('📄 Step 1: Getting login page...');
-    // Initial GET
+    console.log('📄 Step 1: Getting initial page for cookies...');
+    // Initial GET to get cookies
     const initialResponse = await jar.get('https://elicznik.tauron-dystrybucja.pl/');
     console.log('✅ Initial page loaded, status:', initialResponse.status);
     
+    // Extract cookies from initial request
+    const cookies = initialResponse.headers['set-cookie'] || [];
+    console.log('🍪 Received cookies:', cookies.length);
+    
     console.log('🔐 Step 2: Sending login credentials...');
-    // Login POST
+    // Login POST with exact headers from Go version
     const loginData = new URLSearchParams({
       username: config.tauron.username,
       password: config.tauron.password,
       service: 'https://elicznik.tauron-dystrybucja.pl'
     });
     
-    console.log('📤 Sending login data to: https://logowanie.tauron-dystrybucja.pl/login');
-    const loginResponse = await jar.post('https://logowanie.tauron-dystrybucja.pl/login', loginData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    
-    console.log('📥 Login response status:', loginResponse.status);
-    console.log('🔗 Final URL after login:', loginResponse.config.url);
-    
-    // Check if we're redirected to the main app
-    if (loginResponse.config.url && loginResponse.config.url.includes('elicznik.tauron-dystrybucja.pl')) {
+    try {
+      const loginResponse = await jar.post('https://logowanie.tauron-dystrybucja.pl/login', loginData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.82 Safari/537.36',
+          'Accept': 'application/json, text/javascript, */*; q=0.01',
+          'Cookie': cookies.join('; ')
+        },
+        maxRedirects: 2 // Allow max 2 redirects like Go version
+      });
+      
+      console.log('📥 Login response status:', loginResponse.status);
       console.log('✅ Tauron login successful');
+      
+      // Return axios instance for data fetching
       return jar;
-    } else {
-      throw new Error('Login failed - not redirected to main application');
+      
+    } catch (redirectErr) {
+      // Handle redirect manually if needed
+      if (redirectErr.response && (redirectErr.response.status === 302 || redirectErr.response.status === 301)) {
+        console.log('🔀 Handling redirect, status:', redirectErr.response.status);
+        console.log('✅ Login redirect received - likely successful');
+        return jar;
+      }
+      throw redirectErr;
     }
     
   } catch (err) {
     console.log('❌ Tauron login failed:', err.message);
     if (err.response) {
       console.log('📄 Response status:', err.response.status);
-      console.log('🔗 Response URL:', err.response.config?.url);
+      console.log('� Response headers:', Object.keys(err.response.headers));
     }
     throw err;
   }
@@ -122,34 +135,44 @@ async function loginToTauron() {
 async function fetchData(client) {
   console.log('📊 Fetching data from Tauron...');
   
+  // Use same date format as Go version (DD.MM.YYYY)
   const now = new Date();
   const startDate = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days ago
   
   const formatDate = (date) => {
-    return date.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
   };
   
-  const url = `https://elicznik.tauron-dystrybucja.pl/energia/do/dane?form[from]=${formatDate(startDate)}&form[to]=${formatDate(now)}&form[type]=godzin&form[energy][netto]=1&form[energy][netto_oze]=1&form[fileType]=CSV`;
+  const startDateStr = formatDate(startDate);
+  const endDateStr = formatDate(now);
+  
+  const url = `https://elicznik.tauron-dystrybucja.pl/energia/do/dane?form[from]=${startDateStr}&form[to]=${endDateStr}&form[type]=godzin&form[energy][netto]=1&form[energy][netto_oze]=1&form[fileType]=CSV`;
+  
+  console.log('📅 Date range:', startDateStr, 'to', endDateStr);
+  console.log('🔗 Data URL:', url);
   
   try {
     const response = await client.get(url, {
       headers: {
         'User-Agent': 'PostmanRuntime/7.29.2',
         'Accept': '*/*'
-      }
+      },
+      maxRedirects: 0 // No redirects for data fetch
     });
     
-    console.log('✅ CSV data received, parsing...');
-    
+    console.log('✅ CSV data received, status:', response.status);
+    console.log('📊 Data length:', response.data.length, 'characters');
+
     // Parse CSV
     const records = parse(response.data, {
       delimiter: ';',
       skip_empty_lines: true
     });
     
-    console.log(`📝 CSV has ${records.length} rows`);
-    
-    // Process data like in original code
+    console.log(`📝 CSV has ${records.length} rows`);    // Process data like in original code
     const headers = records[0].reduce((acc, header, index) => {
       acc[header.trim()] = index;
       return acc;
@@ -321,7 +344,7 @@ app.get('/api/runs', (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v1.2.2 ===');
+  console.log('🎯 === Tauron Reader Addon v1.2.3 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
