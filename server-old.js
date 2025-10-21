@@ -62,99 +62,72 @@ async function testDB() {
   }
 }
 
-// Login to Tauron - exact copy of Go implementation
+// Login to Tauron
 async function loginToTauron() {
   console.log('🔐 Logging into Tauron...');
   console.log('👤 Username:', config.tauron.username);
   console.log('🔑 Password:', maskPassword(config.tauron.password));
   
-  // Create cookie jar like Go's cookiejar.New(nil)
-  const jar = new CookieJar();
-  const client = wrapper(axios.create({
-    jar,
+  // Create axios instance with manual redirect handling like Go version
+  const jar = axios.create({
     timeout: 30000,
+    maxRedirects: 0, // Handle redirects manually like Go version
+    validateStatus: function (status) {
+      return status >= 200 && status < 400; // Accept all success/redirect codes
+    },
     withCredentials: true
-  }));
+  });
 
   try {
-    console.log('📄 Step 1: Initial GET to get cookies...');
-    // Initial GET to get cookies - exactly like Go
-    const initialResponse = await client.get('https://elicznik.tauron-dystrybucja.pl/');
-    console.log('✅ Initial GET completed, status:', initialResponse.status);
+    console.log('📄 Step 1: Getting initial page for cookies...');
+    // Initial GET to get cookies
+    const initialResponse = await jar.get('https://elicznik.tauron-dystrybucja.pl/');
+    console.log('✅ Initial page loaded, status:', initialResponse.status);
     
-    console.log('🔐 Step 2: POST login with redirect handling...');
+    // Extract cookies from initial request
+    const cookies = initialResponse.headers['set-cookie'] || [];
+    console.log('🍪 Received cookies:', cookies.length);
     
-    // POST login data - exactly like Go
-    const loginURL = 'https://logowanie.tauron-dystrybucja.pl/login';
+    console.log('🔐 Step 2: Sending login credentials...');
+    // Login POST with exact headers from Go version
     const loginData = new URLSearchParams({
       username: config.tauron.username,
       password: config.tauron.password,
       service: 'https://elicznik.tauron-dystrybucja.pl'
     });
-
-    // Manual redirect handling like Go's CheckRedirect
-    let redirectCount = 0;
-    const originalRequest = client.request;
-    client.request = async function(config) {
-      try {
-        const response = await originalRequest.call(this, config);
-        return response;
-      } catch (error) {
-        if (error.response && [301, 302, 303, 307, 308].includes(error.response.status)) {
-          redirectCount++;
-          console.log(`🔀 Redirect ${redirectCount}: ${error.response.status} -> ${error.response.headers.location}`);
-          
-          if (redirectCount >= 2) {
-            console.log('🔀 Stopping after 2 redirects (like Go ErrUseLastResponse)');
-            return error.response; // Return last response like Go
-          }
-          
-          const location = error.response.headers.location;
-          if (location) {
-            // Follow redirect manually
-            const redirectConfig = {
-              ...config,
-              method: 'GET',
-              url: location,
-              data: undefined
-            };
-            return await this.request(redirectConfig);
-          }
-        }
-        throw error;
-      }
-    };
-
-    const loginResponse = await client.post(loginURL, loginData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.82 Safari/537.36',
-        'Accept': 'application/json, text/javascript, */*; q=0.01'
-      }
-    });
     
-    console.log('📥 Login response status:', loginResponse.status);
-    
-    // Check status like Go version
-    if (loginResponse.status !== 200 && loginResponse.status !== 302) {
-      throw new Error(`login failed with status ${loginResponse.status}`);
+    try {
+      const loginResponse = await jar.post('https://logowanie.tauron-dystrybucja.pl/login', loginData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.82 Safari/537.36',
+          'Accept': 'application/json, text/javascript, */*; q=0.01',
+          'Cookie': cookies.join('; ')
+        },
+        maxRedirects: 2 // Allow max 2 redirects like Go version
+      });
+      
+      console.log('📥 Login response status:', loginResponse.status);
+      console.log('✅ Tauron login successful');
+      
+      // Return axios instance for data fetching
+      return jar;
+      
+    } catch (redirectErr) {
+      // Handle redirect manually if needed
+      if (redirectErr.response && (redirectErr.response.status === 302 || redirectErr.response.status === 301)) {
+        console.log('🔀 Handling redirect, status:', redirectErr.response.status);
+        console.log('✅ Login redirect received - likely successful');
+        return jar;
+      }
+      throw redirectErr;
     }
-    
-    console.log('✅ Tauron login successful');
-    
-    // Restore original request method
-    client.request = originalRequest;
-    
-    return client;
     
   } catch (err) {
     console.log('❌ Tauron login failed:', err.message);
     if (err.response) {
       console.log('📄 Response status:', err.response.status);
-      console.log('📄 Response headers:', Object.keys(err.response.headers));
-      if (err.response.status === 451) {
-        console.log('🚫 Status 451: Unavailable for legal reasons - possible geo-blocking');
-      }
+      console.log('� Response headers:', Object.keys(err.response.headers));
     }
     throw err;
   }
@@ -188,7 +161,8 @@ async function fetchData(client) {
       headers: {
         'User-Agent': 'PostmanRuntime/7.29.2',
         'Accept': '*/*'
-      }
+      },
+      maxRedirects: 0 // No redirects for data fetch
     });
     
     console.log('✅ CSV data received, status:', response.status);
@@ -200,9 +174,7 @@ async function fetchData(client) {
       skip_empty_lines: true
     });
     
-    console.log(`📝 CSV has ${records.length} rows`);
-
-    // Process data like in original code
+    console.log(`📝 CSV has ${records.length} rows`);    // Process data like in original code
     const headers = records[0].reduce((acc, header, index) => {
       acc[header.trim()] = index;
       return acc;
@@ -374,7 +346,7 @@ app.get('/api/runs', (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v1.2.4 ===');
+  console.log('🎯 === Tauron Reader Addon v1.2.3 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());

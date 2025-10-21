@@ -1,5 +1,5 @@
 name: Tauron Reader
-version: "1.2.3"
+version: "1.2.4"
 slug: tauron_reader
 description: Addon to fetch energy data from Tauron eLicznik and insert into MySQL database
 url: "https://github.com/ussdeveloper/tauron-e-licznik-reader"
