@@ -311,19 +311,83 @@ function logRun(status, records, message) {
   }
 }
 
+// Check if data for current hour exists
+function getCurrentHourCacheFile() {
+  const now = new Date();
+  const hour = String(now.getHours()).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  
+  const filename = `tauron_${hour}${day}${month}${year}.json`;
+  return `/share/tauron/${filename}`;
+}
+
+// Load cached data if exists
+function loadCachedData() {
+  const cacheFile = getCurrentHourCacheFile();
+  
+  try {
+    if (fs.existsSync(cacheFile)) {
+      console.log(`📂 Found cached data: ${path.basename(cacheFile)}`);
+      const cachedData = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+      console.log(`✅ Loaded ${cachedData.length} records from cache`);
+      return cachedData;
+    }
+  } catch (err) {
+    console.log('⚠️ Failed to load cached data:', err.message);
+  }
+  
+  return null;
+}
+
+// Save data to cache
+function saveCachedData(data) {
+  const cacheFile = getCurrentHourCacheFile();
+  
+  try {
+    // Create directory if it doesn't exist
+    fs.mkdirSync('/share/tauron', { recursive: true });
+    
+    // Save data to cache file
+    fs.writeFileSync(cacheFile, JSON.stringify(data, null, 2));
+    console.log(`💾 Saved ${data.length} records to cache: ${path.basename(cacheFile)}`);
+  } catch (err) {
+    console.log('⚠️ Failed to save cached data:', err.message);
+  }
+}
+
 // Main fetch function
 async function fetchTauronData() {
   const startTime = Date.now();
   console.log('\n🚀 === Starting Tauron data fetch ===');
   
   try {
+    // Check if we have cached data for this hour
+    const cachedData = loadCachedData();
+    
+    if (cachedData) {
+      console.log('⚡ Using cached data - skipping Tauron connection');
+      await insertData(cachedData);
+      
+      const duration = Date.now() - startTime;
+      console.log(`✅ === Fetch completed from cache in ${duration}ms ===\n`);
+      logRun('success-cached', cachedData.length, 'data loaded from cache');
+      return;
+    }
+    
+    console.log('🌐 No cache found - connecting to Tauron...');
     const client = await loginToTauron();
     const data = await fetchData(client);
+    
+    // Save to cache before inserting to database
+    saveCachedData(data);
+    
     await insertData(data);
     
     const duration = Date.now() - startTime;
     console.log(`✅ === Fetch completed successfully in ${duration}ms ===\n`);
-    logRun('success', data.length, 'automatic fetch');
+    logRun('success', data.length, 'fresh data from Tauron');
     
   } catch (err) {
     const duration = Date.now() - startTime;
@@ -344,6 +408,7 @@ app.get('/', (req, res) => {
       <h3>📅 Harmonogram:</h3>
       <ul>${config.schedule.times.map(time => `<li>${time}</li>`).join('')}</ul>
       <h3>📊 <a href="/api/runs">Ostatnie uruchomienia</a></h3>
+      <h3>💾 <a href="/api/cache">Cache files</a></h3>
       <script>
         function runNow() {
           fetch('/run-now').then(() => alert('Rozpoczęto pobieranie danych!'));
@@ -372,9 +437,37 @@ app.get('/api/runs', (req, res) => {
   }
 });
 
+// API endpoint to list cached files
+app.get('/api/cache', (req, res) => {
+  try {
+    const cacheDir = '/share/tauron';
+    if (!fs.existsSync(cacheDir)) {
+      return res.json([]);
+    }
+    
+    const files = fs.readdirSync(cacheDir)
+      .filter(file => file.startsWith('tauron_') && file.endsWith('.json'))
+      .map(file => {
+        const filePath = path.join(cacheDir, file);
+        const stats = fs.statSync(filePath);
+        return {
+          name: file,
+          size: stats.size,
+          created: stats.mtime.toISOString(),
+          current: file === path.basename(getCurrentHourCacheFile())
+        };
+      })
+      .sort((a, b) => new Date(b.created) - new Date(a.created));
+    
+    res.json(files);
+  } catch (err) {
+    res.json([]);
+  }
+});
+
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v1.2.4 ===');
+  console.log('🎯 === Tauron Reader Addon v1.2.5 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
