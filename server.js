@@ -79,13 +79,13 @@ function saveRawData(data, type = 'csv') {
   }
 }
 
-// Login to Tauron - based on Node-RED implementation
+// Login to Tauron - EXACTLY like Go implementation with manual redirect handling
 async function loginToTauron() {
   console.log('🔐 Logging into Tauron...');
   console.log('👤 Username:', config.tauron.username);
   console.log('🔑 Password:', maskPassword(config.tauron.password));
   
-  // Create cookie jar like Node-RED
+  // Create cookie jar
   const jar = new CookieJar();
   const client = wrapper(axios.create({
     jar,
@@ -95,70 +95,93 @@ async function loginToTauron() {
 
   try {
     console.log('📄 Step 1: Initial GET to get cookies...');
-    // Initial GET to get cookies - exactly like Node-RED
+    // Initial GET to get cookies
     const initialResponse = await client.get('https://elicznik.tauron-dystrybucja.pl/');
     console.log('✅ Initial GET completed, status:', initialResponse.status);
     
-    // Extract PHPSESSID from cookies like Node-RED
-    const cookies = await jar.getCookies('https://elicznik.tauron-dystrybucja.pl/');
-    const phpSessionId = cookies.find(cookie => cookie.key === 'PHPSESSID');
+    console.log('🔐 Step 2: POST login with MANUAL redirect handling...');
     
-    if (!phpSessionId) {
-      throw new Error('PHPSESSID cookie not found');
+    // POST login data
+    const loginURL = 'https://logowanie.tauron-dystrybucja.pl/login';
+    const loginData = `username=${encodeURIComponent(config.tauron.username)}&password=${encodeURIComponent(config.tauron.password)}&service=${encodeURIComponent('https://elicznik.tauron-dystrybucja.pl')}`;
+    
+    console.log('📤 Sending login POST...');
+
+    // Send POST with maxRedirects: 0 to handle manually like Go
+    let loginResponse;
+    try {
+      loginResponse = await client.post(loginURL, loginData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.82 Safari/537.36',
+          'Accept': 'application/json, text/javascript, */*; q=0.01'
+        },
+        maxRedirects: 0, // Don't follow redirects automatically
+        validateStatus: function (status) {
+          return status >= 200 && status < 400; // Accept redirects as success
+        }
+      });
+    } catch (err) {
+      // If we get redirect error, that's actually good - means login worked
+      if (err.response && [301, 302, 303, 307, 308].includes(err.response.status)) {
+        loginResponse = err.response;
+        console.log('� Got redirect response:', loginResponse.status);
+      } else {
+        throw err;
+      }
     }
     
-    console.log('🍪 Found PHPSESSID:', phpSessionId.value.substring(0, 10) + '...');
-    
-    console.log('🔐 Step 2: POST login with URL encoding...');
-    
-    // POST login data - URL encoded like Node-RED
-    const loginURL = 'https://logowanie.tauron-dystrybucja.pl/login';
-    
-    // URL encode exactly like Node-RED: usulaco%40gmail.com&password=%217Timl0kber
-    // Let's test with exact payload from Node-RED first
-    const nodeRedPayload = 'username=usulaco%40gmail.com&password=%217Timl0kber&service=https%3A%2F%2Felicznik.tauron-dystrybucja.pl';
-    
-    // Also prepare encoded version as backup
-    const encodedUsername = encodeURIComponent(config.tauron.username);
-    const encodedPassword = encodeURIComponent(config.tauron.password);
-    const encodedService = encodeURIComponent('https://elicznik.tauron-dystrybucja.pl');
-    const dynamicPayload = `username=${encodedUsername}&password=${encodedPassword}&service=${encodedService}`;
-    
-    // Use Node-RED exact payload for now
-    const loginData = nodeRedPayload;
-    
-    console.log('📤 Login payload (Node-RED exact):', nodeRedPayload);
-    console.log('📤 Login payload (dynamic):', `username=${encodedUsername}&password=${maskPassword(config.tauron.password)}&service=${encodedService}`);
-
-    const loginResponse = await client.post(loginURL, loginData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.82 Safari/537.36',
-        'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive'
-        // Remove PHPSESSID from headers - let cookies handle it
-      },
-      maxRedirects: 10 // Allow more redirects like Node-RED followRedirects=true
-    });
-    
-    console.log('📥 Login response status:', loginResponse.status);
-    console.log('🔗 Login final URL:', loginResponse.request?.res?.responseUrl || loginResponse.config?.url);
+    console.log('� Login response status:', loginResponse.status);
     
     // Save login response for debugging
     if (loginResponse.data) {
       saveRawData(loginResponse.data, 'login');
     }
     
-    // Check if we have redirects (like Node-RED checks redirectList)
-    const finalUrl = loginResponse.request?.res?.responseUrl || loginResponse.config?.url || '';
-    console.log('🔍 Checking final URL:', finalUrl);
-    
-    if (finalUrl.includes('elicznik.tauron-dystrybucja.pl')) {
-      console.log('✅ Tauron login successful - redirected to main app');
+    // If we got 302 redirect, follow it manually to get final cookies
+    if (loginResponse.status === 302 || loginResponse.status === 301) {
+      const redirectLocation = loginResponse.headers.location;
+      console.log('🔀 Following redirect to:', redirectLocation);
+      
+      if (redirectLocation) {
+        try {
+          const redirectResponse = await client.get(redirectLocation, {
+            maxRedirects: 0,
+            validateStatus: function (status) {
+              return status >= 200 && status < 400;
+            }
+          });
+          console.log('✅ Redirect followed, status:', redirectResponse.status);
+          
+          // Check if second redirect
+          if (redirectResponse.status === 302 || redirectResponse.status === 301) {
+            const secondRedirect = redirectResponse.headers.location;
+            console.log('🔀 Following 2nd redirect to:', secondRedirect);
+            
+            if (secondRedirect) {
+              const finalResponse = await client.get(secondRedirect);
+              console.log('✅ Final redirect status:', finalResponse.status);
+            }
+          }
+        } catch (redirectErr) {
+          console.log('⚠️ Redirect follow error:', redirectErr.message);
+        }
+      }
+      
+      console.log('✅ Tauron login successful - redirects handled');
       return client;
+    } else if (loginResponse.status === 200) {
+      // Check if we're on the right page
+      const finalUrl = loginResponse.request?.res?.responseUrl || loginResponse.config?.url || '';
+      if (finalUrl.includes('elicznik.tauron-dystrybucja.pl')) {
+        console.log('✅ Tauron login successful');
+        return client;
+      } else {
+        console.log('❌ Status 200 but still on login page');
+        throw new Error('Login failed - still on login page');
+      }
     } else {
-      throw new Error('Login failed - not redirected to main application');
+      throw new Error(`Unexpected status: ${loginResponse.status}`);
     }
     
   } catch (err) {
@@ -510,7 +533,7 @@ app.get('/api/cache', (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v1.2.9 ===');
+  console.log('🎯 === Tauron Reader Addon v1.3.0 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
