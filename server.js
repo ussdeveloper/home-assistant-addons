@@ -179,6 +179,23 @@ async function getEnergyStats() {
   }
 }
 
+// Save run log
+function logRun(status, records, message) {
+  const logEntry = {
+    time: new Date().toISOString(),
+    status,
+    records,
+    message
+  };
+  
+  try {
+    fs.mkdirSync('/data/buffer', { recursive: true });
+    fs.appendFileSync('/data/buffer/runs.log.jsonl', JSON.stringify(logEntry) + '\n');
+  } catch (err) {
+    console.log('⚠️ Failed to save log:', err.message);
+  }
+}
+
 // Main fetch function
 async function fetchTauronData() {
   const startTime = Date.now();
@@ -263,7 +280,6 @@ app.get('/', async (req, res) => {
           
           <div class="section">
             <h3>📊 <a href="/api/runs">Ostatnie uruchomienia</a></h3>
-            <h3>💾 <a href="/api/cache">Pliki cache</a></h3>
           </div>
         </div>
         
@@ -308,34 +324,6 @@ app.get('/api/runs', (req, res) => {
       .map(line => JSON.parse(line))
       .reverse();
     res.json(logs);
-  } catch (err) {
-    res.json([]);
-  }
-});
-
-// API endpoint to list cached files
-app.get('/api/cache', (req, res) => {
-  try {
-    const cacheDir = '/share/tauron';
-    if (!fs.existsSync(cacheDir)) {
-      return res.json([]);
-    }
-    
-    const files = fs.readdirSync(cacheDir)
-      .filter(file => file.startsWith('tauron_') && file.endsWith('.json'))
-      .map(file => {
-        const filePath = path.join(cacheDir, file);
-        const stats = fs.statSync(filePath);
-        return {
-          name: file,
-          size: stats.size,
-          created: stats.mtime.toISOString(),
-          current: file === path.basename(getCurrentHourCacheFile())
-        };
-      })
-      .sort((a, b) => new Date(b.created) - new Date(a.created));
-    
-    res.json(files);
   } catch (err) {
     res.json([]);
   }
