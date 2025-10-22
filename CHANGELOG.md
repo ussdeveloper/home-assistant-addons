@@ -1,5 +1,9 @@
 # Changelog
 
+## [3.4.1] - 2025-10-22
+### Fixed
+- **Missing index.html in Docker container**: Added COPY index.html ./ to Dockerfile to fix "ENOENT: no such file or directory" error when loading the web interface
+
 ## [3.4.0] - 2025-10-22
 ### Added
 - **Multi-Year Chart Selection**: Replaced single year dropdown with checkboxes allowing selection of multiple years (up to 5 for UI clarity)

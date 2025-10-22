@@ -12,6 +12,7 @@ RUN npm install --production
 # Copy application files
 COPY server.js ./
 COPY tauron-reader ./
+COPY index.html ./
 COPY start.sh ./
 
 # Make scripts executable
