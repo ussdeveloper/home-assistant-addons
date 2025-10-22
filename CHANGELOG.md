@@ -9,6 +9,11 @@
 - Implemented `hexToRgba()` helper and applied per-point alpha (0.3–0.6) for fills
 - Updated UI controls (and tab switcher) to render `.legend-dot` elements and update their colors dynamically
 
+## [3.9.3] - 2025-10-22
+### Fixed
+- **Manual trigger button**: Restored missing `runNow()` on the client; the "Refresh Tauron" button now invokes `/run-now`
+- **HA ingress aware**: Uses detected `basePath` so it works reliably inside Home Assistant ingress
+
 ## [3.9.1] - 2025-10-22
 ### Fixed
 - **Chart transparency issue**: Reduced base opacity to 0.3–0.6, but background remained opaque due to hex colors (superseded by 3.9.2)

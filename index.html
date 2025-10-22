@@ -303,7 +303,7 @@
             <span><span class="legend-dot" id="consDot" style="background:#aec7e8"></span>Zużycie</span>
           </label>
         </div>
-        <button class="btn btn-secondary" onclick="runNow()">🔄 Refresh Tauron</button>
+        <button class="btn btn-secondary" id="runNowBtn" onclick="runNow()">🔄 Refresh Tauron</button>
       </div>
     </div>
     <div class="chart-container">
@@ -776,6 +776,40 @@
         })
         .catch(function(err) {
           console.error('Failed to load total production:', err);
+        });
+    }
+
+    // Manual run trigger for Tauron reader
+    function runNow() {
+      var btn = document.getElementById('runNowBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Uruchamianie…';
+      }
+      fetch(basePath + '/run-now')
+        .then(function(resp) { return resp.text(); })
+        .then(function(_) {
+          if (btn) {
+            btn.textContent = '✅ Uruchomiono';
+          }
+          // give the backend some time, then refresh chart
+          setTimeout(function() {
+            updateChart();
+            if (btn) {
+              btn.textContent = '🔄 Refresh Tauron';
+              btn.disabled = false;
+            }
+          }, 2000);
+        })
+        .catch(function(err) {
+          console.error('runNow error:', err);
+          if (btn) {
+            btn.textContent = '❌ Błąd';
+            setTimeout(function() {
+              btn.textContent = '🔄 Refresh Tauron';
+              btn.disabled = false;
+            }, 2000);
+          }
         });
     }
 
