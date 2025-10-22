@@ -700,141 +700,142 @@ app.get('/', async (req, res) => {
             updateChart();
           }
           
-          async function updateChart() {
+          function updateChart() {
             var showProductionEl = document.getElementById('showProduction');
             var showConsumptionEl = document.getElementById('showConsumption');
             var showProduction = showProductionEl ? showProductionEl.checked : false;
             var showConsumption = showConsumptionEl ? showConsumptionEl.checked : false;
             
-            try {
-              // Select API endpoint based on chart type
-              var apiUrl;
-              if (currentChartType === 'monthly') {
-                apiUrl = basePath + '/api/chart-data-monthly';
-              } else if (currentChartType === 'yearly') {
-                apiUrl = basePath + '/api/chart-data-yearly';
-              } else {
-                apiUrl = basePath + '/api/chart-data';
-              }
-              
-              console.log('Fetching chart data from:', apiUrl);
-              var response = await fetch(apiUrl);
-              var data = await response.json();
-              
-              console.log('Chart data received:', data);
-              
-              if (!data.success) {
-                console.error('Failed to load chart data:', data.error);
-                document.querySelector('.chart-container').innerHTML = 
-                  '<div style="color: #f85149; text-align: center; padding: 40px;">❌ Błąd ładowania danych: ' + data.error + '</div>';
-                return;
-              }
-              
-              if (!data.labels || data.labels.length === 0) {
-                console.warn('No data available for chart');
-                document.querySelector('.chart-container').innerHTML = 
-                  '<div style="color: #8b949e; text-align: center; padding: 40px;">📊 Brak danych</div>';
-                return;
-              }
-              
-              var datasets = [];
-              
-              // For monthly/yearly - only production
-              if (currentChartType === 'monthly' || currentChartType === 'yearly') {
-                if (showProduction) {
-                  datasets.push({
-                    label: 'Produkcja (kWh)',
-                    data: data.production,
-                    borderColor: '#3fb950',
-                    backgroundColor: 'rgba(63, 185, 80, 0.2)',
-                    tension: 0.4,
-                    fill: true,
-                    borderWidth: 3
-                  });
+            // Select API endpoint based on chart type
+            var apiUrl;
+            if (currentChartType === 'monthly') {
+              apiUrl = basePath + '/api/chart-data-monthly';
+            } else if (currentChartType === 'yearly') {
+              apiUrl = basePath + '/api/chart-data-yearly';
+            } else {
+              apiUrl = basePath + '/api/chart-data';
+            }
+            
+            console.log('Fetching chart data from:', apiUrl);
+            
+            fetch(apiUrl)
+              .then(function(response) { return response.json(); })
+              .then(function(data) {
+                console.log('Chart data received:', data);
+                
+                if (!data.success) {
+                  console.error('Failed to load chart data:', data.error);
+                  document.querySelector('.chart-container').innerHTML = 
+                    '<div style="color: #f85149; text-align: center; padding: 40px;">❌ Błąd ładowania danych: ' + data.error + '</div>';
+                  return;
                 }
-              } else {
-                // For daily - production and consumption
-                if (showProduction) {
-                  datasets.push({
-                    label: 'Produkcja (kWh)',
-                    data: data.production,
-                    borderColor: '#3fb950',
-                    backgroundColor: 'rgba(63, 185, 80, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    borderWidth: 2
-                  });
+                
+                if (!data.labels || data.labels.length === 0) {
+                  console.warn('No data available for chart');
+                  document.querySelector('.chart-container').innerHTML = 
+                    '<div style="color: #8b949e; text-align: center; padding: 40px;">📊 Brak danych</div>';
+                  return;
                 }
-                if (showConsumption) {
-                  datasets.push({
-                    label: 'Zużycie (kWh)',
-                    data: data.consumption,
-                    borderColor: '#f85149',
-                    backgroundColor: 'rgba(248, 81, 73, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    borderWidth: 2
-                  });
+                
+                var datasets = [];
+                
+                // For monthly/yearly - only production
+                if (currentChartType === 'monthly' || currentChartType === 'yearly') {
+                  if (showProduction) {
+                    datasets.push({
+                      label: 'Produkcja (kWh)',
+                      data: data.production,
+                      borderColor: '#3fb950',
+                      backgroundColor: 'rgba(63, 185, 80, 0.2)',
+                      tension: 0.4,
+                      fill: true,
+                      borderWidth: 3
+                    });
+                  }
+                } else {
+                  // For daily - production and consumption
+                  if (showProduction) {
+                    datasets.push({
+                      label: 'Produkcja (kWh)',
+                      data: data.production,
+                      borderColor: '#3fb950',
+                      backgroundColor: 'rgba(63, 185, 80, 0.1)',
+                      tension: 0.4,
+                      fill: true,
+                      borderWidth: 2
+                    });
+                  }
+                  if (showConsumption) {
+                    datasets.push({
+                      label: 'Zużycie (kWh)',
+                      data: data.consumption,
+                      borderColor: '#f85149',
+                      backgroundColor: 'rgba(248, 81, 73, 0.1)',
+                      tension: 0.4,
+                      fill: true,
+                      borderWidth: 2
+                    });
+                  }
                 }
-              }
-              
-              if (chart) chart.destroy();
-              
-              // Recreate canvas if it was replaced with error message
-              var container = document.querySelector('.chart-container');
-              if (!document.getElementById('energyChart')) {
-                container.innerHTML = '<canvas id="energyChart"></canvas>';
-              }
-              
-              var newCtx = document.getElementById('energyChart').getContext('2d');
-              
-              chart = new Chart(newCtx, {
-                type: 'line',
-                data: {
-                  labels: data.labels,
-                  datasets: datasets
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      display: false
-                    },
-                    tooltip: {
-                      mode: 'index',
-                      intersect: false
-                    }
+                
+                if (chart) chart.destroy();
+                
+                // Recreate canvas if it was replaced with error message
+                var container = document.querySelector('.chart-container');
+                if (!document.getElementById('energyChart')) {
+                  container.innerHTML = '<canvas id="energyChart"></canvas>';
+                }
+                
+                var newCtx = document.getElementById('energyChart').getContext('2d');
+                
+                chart = new Chart(newCtx, {
+                  type: 'line',
+                  data: {
+                    labels: data.labels,
+                    datasets: datasets
                   },
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      grid: {
-                        color: '#21262d'
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        display: false
                       },
-                      ticks: {
-                        color: '#8b949e',
-                        font: { size: 10 },
-                        callback: function(value) {
-                          return value + ' kWh';
-                        }
+                      tooltip: {
+                        mode: 'index',
+                        intersect: false
                       }
                     },
-                    x: {
-                      grid: {
-                        color: '#21262d'
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        grid: {
+                          color: '#21262d'
+                        },
+                        ticks: {
+                          color: '#8b949e',
+                          font: { size: 10 },
+                          callback: function(value) {
+                            return value + ' kWh';
+                          }
+                        }
                       },
-                      ticks: {
-                        color: '#8b949e',
-                        font: { size: 10 }
+                      x: {
+                        grid: {
+                          color: '#21262d'
+                        },
+                        ticks: {
+                          color: '#8b949e',
+                          font: { size: 10 }
+                        }
                       }
                     }
                   }
-                }
-              });
-            } catch (err) {
+                });
+              })
+            .catch(function(err) {
               console.error('Chart update error:', err);
-            }
+            });
           }
           
           function runNow() {

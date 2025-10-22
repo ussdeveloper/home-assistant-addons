@@ -2,6 +2,12 @@
 
 # Changelog
 
+## [3.3.6] - 2025-10-22
+### Fixed
+- Replaced async/await with Promise .then() for better browser compatibility
+- Removed try/catch and used .catch() instead
+- Fixed "Unexpected token 'var'" error in older browsers/iframe context
+
 ## [3.3.5] - 2025-10-22
 ### Changed
 - Removed automatic initial data fetch at startup
