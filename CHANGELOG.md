@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.11] - 2025-10-22
+### Fixed
+- Fixed Chart.js loading issues with proper error handling and availability checks
+- Fixed chart container dimensions to match UI.drawio specification (200px height)
+- Fixed event handling in switchChartType function for better browser compatibility
+- Added try-catch around Chart.js instantiation for better error reporting
+
 ## [3.3.10] - 2025-10-22
 ### Fixed
 - Fixed remaining UTF-8 encoding issue in initial HTML template causing JavaScript syntax error

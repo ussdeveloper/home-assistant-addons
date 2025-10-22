@@ -221,7 +221,7 @@ console.log('Chart data received:', data);
 // Look for emoji prefixes: 🔌 🚀 ✅ ❌ ⚠️
 ```
 
-## Current State (v3.3.10)
+## Current State (v3.3.11)
 
 - ✅ Browser compatibility: ES5 syntax, no async/await in client code
 - ✅ Rate limiting: No auto-fetch, no service test at startup
@@ -230,4 +230,5 @@ console.log('Chart data received:', data);
 - ✅ Version management: Semantic versioning with 3-file sync
 - ✅ Release process: Git tags for Home Assistant addon updates
 - ✅ UTF-8 encoding: Fixed all corrupted characters in HTML templates
+- ✅ Chart.js: Proper loading with error handling and UI.drawio dimensions
 - ⚠️ Known limitation: Tauron API occasionally returns malformed CSV (parse errors unavoidable)
