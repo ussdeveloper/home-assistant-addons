@@ -2,6 +2,15 @@
 
 # Changelog
 
+## [3.1.3] - 2025-10-22
+
+### Changed
+- **UI Layout Redesign** - Implemented Grafana-style layout matching UI.drawio specification
+- **Chart Section** - Increased height to 250px with proper top bar and menu
+- **Section Headers** - Added dedicated headers for Logs and Status sections
+- **Improved Structure** - Separated section-header and section-content for better organization
+- **Visual Polish** - Enhanced spacing, colors, and typography throughout
+
 ## [3.1.2] - 2025-10-22
 
 ### Fixed

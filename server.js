@@ -318,40 +318,46 @@ app.get('/', async (req, res) => {
             flex-direction: column;
           }
           
-          /* Sekcja wykresów */
+          /* Sekcja wykresów - Grafana style */
           .chart-section {
             width: 100%;
             background: #161b22;
-            padding: 15px;
+            height: 250px;
+            display: flex;
+            flex-direction: column;
             border-bottom: 1px solid #30363d;
           }
-          .chart-header {
+          .chart-top-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            padding: 8px 15px;
+            background: #0d1117;
+            border-bottom: 1px solid #21262d;
+            height: 40px;
           }
           .chart-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: #58a6ff;
           }
-          .chart-controls {
+          .chart-menu {
             display: flex;
             gap: 10px;
             align-items: center;
           }
           .checkbox-group {
             display: flex;
-            gap: 15px;
+            gap: 12px;
           }
           .checkbox-group label {
             display: flex;
             align-items: center;
             gap: 5px;
-            font-size: 12px;
+            font-size: 11px;
             cursor: pointer;
             user-select: none;
+            color: #8b949e;
           }
           .checkbox-group input[type="checkbox"] {
             cursor: pointer;
@@ -360,10 +366,10 @@ app.get('/', async (req, res) => {
             background: #238636;
             color: white;
             border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 5px 10px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 500;
             transition: background 0.2s;
           }
@@ -375,10 +381,9 @@ app.get('/', async (req, res) => {
           
           .chart-container {
             position: relative;
-            height: 200px;
+            flex: 1;
             background: #0d1117;
-            border-radius: 6px;
-            padding: 10px;
+            padding: 10px 15px;
           }
           
           /* Sekcje dolne */
@@ -392,21 +397,38 @@ app.get('/', async (req, res) => {
           
           .section {
             flex: 1;
+            background: #161b22;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+          }
+          
+          .section-header {
             background: #0d1117;
-            overflow-y: auto;
-            padding: 15px;
+            padding: 8px 15px;
+            border-bottom: 1px solid #21262d;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
           }
           
           .section-title {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: #58a6ff;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #21262d;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+          }
+          
+          .section-count {
+            font-size: 10px;
+            color: #8b949e;
+          }
+          
+          .section-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #0d1117;
           }
           
           /* Logi */
@@ -484,15 +506,15 @@ app.get('/', async (req, res) => {
         </style>
       </head>
       <body>
-        <!-- Sekcja wykresów -->
+        <!-- Sekcja wykresów - Grafana style -->
         <div class="chart-section">
-          <div class="chart-header">
+          <div class="chart-top-bar">
             <div class="chart-title">📊 Energia - ostatnie 24h</div>
-            <div class="chart-controls">
+            <div class="chart-menu">
               <div class="checkbox-group">
                 <label>
                   <input type="checkbox" id="showProduction" checked onchange="updateChart()">
-                  <span>� Produkcja</span>
+                  <span>🟢 Produkcja</span>
                 </label>
                 <label>
                   <input type="checkbox" id="showConsumption" checked onchange="updateChart()">
@@ -511,11 +533,11 @@ app.get('/', async (req, res) => {
         <div class="content-sections">
           <!-- Logi -->
           <div class="section">
-            <div class="section-title">
-              <span>📝 Logi i aktualizacje</span>
-              <span style="font-size: 11px; font-weight: normal; color: #8b949e;">${logs.length} wpisów</span>
+            <div class="section-header">
+              <div class="section-title">📝 Logi i aktualizacje</div>
+              <div class="section-count">${logs.length} wpisów</div>
             </div>
-            <div id="logs">
+            <div class="section-content">
               ${logs.map(log => `
                 <div class="log-entry ${log.status === 'error' ? 'error' : ''}">
                   <div class="log-time">${new Date(log.time).toLocaleString('pl-PL')}</div>
@@ -528,9 +550,10 @@ app.get('/', async (req, res) => {
           
           <!-- Status i podsumowanie -->
           <div class="section">
-            <div class="section-title">
-              <span>ℹ️ Status i podsumowanie</span>
+            <div class="section-header">
+              <div class="section-title">ℹ️ Status i podsumowanie</div>
             </div>
+            <div class="section-content">
             
             <div class="status-item">
               <div class="status-label">OSTATNIA AKTUALIZACJA</div>
@@ -570,6 +593,7 @@ app.get('/', async (req, res) => {
               <div class="status-value">
                 ${config.schedule.times.map(time => `<span class="schedule-item">⏰ ${time}</span>`).join('')}
               </div>
+            </div>
             </div>
           </div>
         </div>
@@ -778,7 +802,7 @@ app.get('/api/chart-data', async (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.1.2 ===');
+  console.log('🎯 === Tauron Reader Addon v3.1.3 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());

@@ -1,0 +1,40 @@
+<mxfile host="65bd71144e">
+    <diagram id="pRMKYMjQk1qsUz9fkHFL" name="UI - panel boczny">
+        <mxGraphModel dx="711" dy="499" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="120" y="10" width="690" height="490" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="wykresy w stylu graphana&amp;nbsp;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="120" y="10" width="690" height="230" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" value="Logi&amp;nbsp;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="120" y="250" width="340" height="250" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="Status podsumowanie" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="470" y="250" width="340" height="250" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="120" y="10" width="690" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="8" value="Header" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="120" y="250" width="340" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" value="Header" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="470" y="250" width="340" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" value="menu do wykresow" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="690" y="10" width="120" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="horizontal resize handle" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="460" y="250" width="10" height="250" as="geometry"/>
+                </mxCell>
+                <mxCell id="12" value="vertical resize handle" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="120" y="240" width="690" height="10" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
