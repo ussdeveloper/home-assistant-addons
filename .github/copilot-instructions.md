@@ -221,7 +221,7 @@ console.log('Chart data received:', data);
 // Look for emoji prefixes: 🔌 🚀 ✅ ❌ ⚠️
 ```
 
-## Current State (v3.3.9)
+## Current State (v3.3.10)
 
 - ✅ Browser compatibility: ES5 syntax, no async/await in client code
 - ✅ Rate limiting: No auto-fetch, no service test at startup
@@ -229,5 +229,5 @@ console.log('Chart data received:', data);
 - ✅ Ingress: Full Home Assistant sidebar integration on port 8099
 - ✅ Version management: Semantic versioning with 3-file sync
 - ✅ Release process: Git tags for Home Assistant addon updates
-- ✅ UTF-8 encoding: Fixed corrupted characters in HTML templates
+- ✅ UTF-8 encoding: Fixed all corrupted characters in HTML templates
 - ⚠️ Known limitation: Tauron API occasionally returns malformed CSV (parse errors unavoidable)

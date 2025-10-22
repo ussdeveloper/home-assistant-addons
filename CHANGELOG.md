@@ -1,5 +1,9 @@
 # Changelog
 
+## [3.3.10] - 2025-10-22
+### Fixed
+- Fixed remaining UTF-8 encoding issue in initial HTML template causing JavaScript syntax error
+
 ## [3.3.9] - 2025-10-22
 ### Fixed
 - Fixed corrupted UTF-8 character in HTML template causing "Unexpected token 'var'" JavaScript error
