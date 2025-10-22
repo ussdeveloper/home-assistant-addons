@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.3.12] - 2025-10-22
+### Refactored
+- Extracted HTML template from server.js into separate index.html file for better code organization
+- Improved server.js readability by separating presentation logic from business logic
+- Maintained all existing functionality while improving maintainability
+
 ## [3.3.11] - 2025-10-22
 ### Fixed
 - Fixed Chart.js loading issues with proper error handling and availability checks
