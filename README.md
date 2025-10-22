@@ -1,164 +1,98 @@
-# Tauron Reader Home Assistant Addon
+# Tauron Reader Home Assistant Add-on
 
-This Home Assistant addon fetches energy consumption and production data from Tauron eLicznik service and inserts it into a MySQL database using the standalone `tauron-reader` binary.
+Addon do Home Assistant, który pobiera dane z Tauron eLicznik i zapisuje je do MySQL (poprzez binarkę Go `tauron-reader`) oraz udostępnia nowoczesny panel z wykresami (Chart.js) przez ingress.
 
-## 🎨 Modern Web Interface (v3.1.0)
+## 🎨 Interfejs i funkcje
 
-The addon features a professional dark-themed dashboard with:
+- 📊 Wykresy 12 miesięcy z możliwością wyboru wielu lat (max 5)
+  - Produkcja i Zużycie z przeźroczystymi wypełnieniami (RGBA) i spójnymi kolorami legendy
+  - Zawsze 12 miesięcy; dane agregowane miesięcznie dla wybranych lat
+- ℹ️ Status i podsumowanie
+  - SUMA PRODUKCJI per rok (kWh)
+  - Ostatnia aktualizacja (z bazy)
+  - WCZORAJ i PRZEDWCZORAJ (etykiety skorygowane o opóźnienie danych)
+- 📝 Logi uruchomień (JSONL) w `/data/buffer/runs.log.jsonl`
+- 🔄 Ręczny przycisk „Refresh Tauron” (bez auto-fetcha przy starcie)
+- 🧭 Pełna zgodność z ingress Home Assistanta (ścieżki bazują na nagłówku `x-ingress-path`)
 
-- **📊 Interactive Charts**: Real-time energy visualization with Chart.js
-  - Toggle between production and consumption data
-  - Hourly data for the last 24 hours
-  - Smooth animations and responsive design
-  
-- **📝 Activity Logs**: Scrollable log section showing:
-  - Recent data updates and operations
-  - Success/error indicators
-  - Timestamps in local format
-  
-- **ℹ️ Status Dashboard**: Comprehensive overview including:
-  - Today's energy statistics
-  - This week's summary
-  - Yesterday's comparison
-  - Database and Tauron connection status
-  - Scheduled run times
-  
-- **🔄 Auto-refresh**: Chart updates every 60 seconds
-- **📱 Responsive**: Adapts to Home Assistant webview size
+## Architektura
 
-## Architecture
+- `tauron-reader` (Go): logowanie, pobieranie CSV, upsert do MySQL, throttling 1h
+- `server.js` (Node.js): UI, API do wykresów, harmonogram (cron), uruchamianie binarki
+- `start.sh`: ładowanie konfiguracji z `/data/options.json`, test DB, start serwera
 
-The addon consists of two main components:
+Schemat:
 
-1. **tauron-reader** - A Go binary that handles all the heavy lifting:
-   - Authenticates with Tauron eLicznik service
-   - Fetches energy data (consumption and production)
-   - Parses CSV responses
-   - Inserts data into MySQL database with upsert functionality
-   - Implements 1-hour throttle to avoid unnecessary fetches
-
-2. **Node.js Web Server** - Provides a user interface and scheduling:
-   - Web interface to view statistics and trigger manual updates
-   - Scheduled tasks based on configuration
-   - Status monitoring and logging
-   - Ingress support for Home Assistant integration
-
-## Configuration
-
-The addon has the following configuration options, similar to `tauron-db-config.json`:
-
-## Features
-
-- **Automated Data Fetching**: Fetches hourly energy data for the last 3 days automatically
-- **Smart Throttling**: 1-hour throttle prevents unnecessary API calls
-- **Force Mode**: Manual trigger option with throttle bypass
-- **Data Integrity**: Upsert functionality prevents duplicate records
-- **Connection Testing**: Built-in database and Tauron service testing
-- **Web Interface**: Clean UI to monitor statistics and control the addon
-- **Home Assistant Integration**: Full ingress support with sidebar panel
-- **Comprehensive Logging**: Track all fetch operations and results
-
-## tauron-reader CLI Options
-
-The underlying `tauron-reader` binary supports various command-line options:
-
-- `-test-db` - Test database connection
-- `-test-service` - Test Tauron service connection
-- `-status` - Show status and scheduled tasks
-- `-verbose` - Enable detailed logging
-- `-force` - Bypass throttle and force data fetch
-- `-start-date YYYY-MM-DD` - Fetch data from specific date
-- `-end-date YYYY-MM-DD` - Fetch data until specific date (max 90 days range)
-- `-serve-only` - Run HTTP status server without fetching
-- `-http-port N` - Set HTTP server port (default: 8765)
-
-The addon automatically uses these options when appropriate (e.g., `-verbose` for all fetches, `-force` for manual triggers).icznik password
-- **Schedule Times**: List of times to run the fetch (e.g., ["02:00", "10:00"])
-- **HTTP Port**: Port for the status web server (default: 8765)
-
-## Installation
-
-### Home Assistant Addon
-
-1. Add this repository to your Home Assistant addon store
-2. Install the "Tauron Reader" addon
-3. Configure the addon with your database and Tauron credentials
-4. Start the addon
-5. Access the web interface through the Home Assistant sidebar
-
-### Standalone Usage
-
-You can also run `tauron-reader` as a standalone application:
-
-1. Copy `tauron-db-config.example.json` to `tauron-db-config.json`
-2. Edit the configuration with your credentials
-3. Run the binary:
-   ```bash
-   # Test connections
-   ./tauron-reader -test-db
-   ./tauron-reader -test-service
-   
-   # Fetch data
-   ./tauron-reader -verbose
-   
-   # Force fetch (bypass throttle)
-   ./tauron-reader -force
-   
-   # Fetch specific date range
-   ./tauron-reader -start-date 2025-01-01 -end-date 2025-01-15
-   ```
-
-### Windows Scheduled Tasks
-
-On Windows, you can register scheduled tasks:
-
-```cmd
-tauron-reader.exe -win-service-register
+```
+User → HA Ingress (8099) → Node.js server → tauron-reader → MySQL
 ```
 
-This will create tasks that run at 02:00 and 10:00 daily.
+## Konfiguracja (skrót)
 
-## Features
+Konfiguracja jest w formacie zgodnym z `tauron-db-config.json` (tworzona z `/data/options.json`):
 
-- Fetches hourly energy data for the last 3 days
-- Parses CSV data from Tauron
-- Inserts data into MySQL with upsert functionality
-- 1-hour throttle to avoid unnecessary fetches
-- Optional HTTP status server
-- Runs as a service in Home Assistant
+```
+{
+  "database": { "host": "...", "port": 3306, "user": "...", "password": "...", "name": "...", "table": "tauron" },
+  "tauron": { "username": "...", "password": "..." },
+  "schedule": { "times": ["02:00", "10:00"] },
+  "http": { "port": 8765 }
+}
+```
 
-## Database Schema
+Polityka anty–rate-limit:
+- Brak testu połączenia z Tauron przy starcie
+- Brak auto-pobrania przy starcie
+- Pobieranie tylko wg harmonogramu lub po kliknięciu „Refresh Tauron”
 
-The addon expects a MySQL table with the following structure:
+## CLI (tauron-reader)
+
+- `-test-db` — test bazy danych
+- `-test-service` — test usługi Tauron (używać ręcznie; nie na starcie addonu)
+- `-verbose`, `-force`, `-status`, `-start-date`, `-end-date`
+
+## Schemat bazy danych
+
+Domyślna tabela (nazwy kolumn zgodne z binarką):
 
 ```sql
 CREATE TABLE `tauron` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `ts_real` datetime NOT NULL,
-  `consumption` int DEFAULT NULL COMMENT 'Wh',
-  `production` int DEFAULT NULL COMMENT 'Wh',
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `ts_real` (`ts_real`)
+  `ts_real` DATETIME NOT NULL UNIQUE,
+  `ec` INT NULL COMMENT 'consumption Wh',
+  `oze` INT NULL COMMENT 'production Wh'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
-Key columns:
-- `ts_real` (datetime, UNIQUE) - Timestamp of the measurement
-- `consumption` (int) - Energy consumption in Wh
-- `production` (int) - Energy production in Wh
+W UI wartości są prezentowane w kWh (dzielone przez 1000).
 
-The upsert mechanism uses `ts_real` as the unique key to prevent duplicates.
+## Instalacja (HA)
 
-## Development
+1) Dodaj repo add-onów i zainstaluj „Tauron Reader”
+2) Skonfiguruj dane DB i Tauron w UI
+3) Uruchom dodatek (panel pojawi się w sidebarze dzięki ingress)
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed development and testing instructions.
+### Standalone (dev)
 
-## License
+```
+cp tauron-db-config.example.json tauron-db-config.json
+# Edytuj dane
+wsl ./tauron-reader -test-db
+npm install
+npm start
+```
 
-MIT
+UI: http://localhost:8765 (poza HA); w HA używany jest port ingress 8099.
 
-## Credits
+### Windows (opcjonalnie)
 
-Created for Home Assistant integration with Tauron eLicznik service.
+```
+tauron-reader.exe -win-service-register
+```
+
+## Dodatkowe dokumenty
+
+- DEVELOPMENT.md — instrukcje dla deweloperów
+- TROUBLESHOOTING.md — rozwiązywanie problemów
+- CHANGELOG.md — historia zmian
+
+Licencja: MIT

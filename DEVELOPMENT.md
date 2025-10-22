@@ -18,10 +18,10 @@
 ### Przepływ danych
 
 1. **Start** (`start.sh`):
-   - Kopiuje `/data/options.json` → `tauron-db-config.json`
-   - Testuje połączenie z bazą danych (`-test-db`)
-   - Testuje połączenie z Tauron (`-test-service`)
-   - Uruchamia `server.js`
+  - Kopiuje `/data/options.json` → `tauron-db-config.json`
+  - Testuje połączenie z bazą danych (`-test-db`)
+  - [Nie wykonuje] testu usługi Tauron przy starcie (polityka anty–rate-limit)
+  - Uruchamia `server.js`
 
 2. **Server Node.js** (`server.js`):
    - Wystawia interfejs webowy na porcie 8765
@@ -93,7 +93,7 @@
 # 1. Test połączenia z bazą
 wsl ./tauron-reader -test-db
 
-# 2. Test połączenia z Tauron
+# 2. (Opcjonalnie) Test połączenia z Tauron – ręcznie
 wsl ./tauron-reader -test-service
 
 # 3. Jeden fetch (verbose)
@@ -159,6 +159,7 @@ node server.js
 **Problem**: Nie pobiera danych
 - Sprawdź logowanie Tauron: `./tauron-reader -test-service`
 - Sprawdź czy nie ma throttle (czekaj 1h lub użyj `-force`)
+- Pamiętaj: addon nie testuje ani nie pobiera danych przy starcie (schedule/rekę)
 
 ## Architektura decyzji
 

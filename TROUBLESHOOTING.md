@@ -20,10 +20,11 @@
    Settings → Add-ons → Tauron Reader → Log
    ```
    
-   Powinny zawierać:
+   Przykładowy poprawny start:
    ```
    🚀 Starting Tauron Reader Addon...
    ✅ Loading configuration from /data/options.json
+   🔍 Testing database connection...
    ✅ Database connection OK
    🌐 HTTP server running on port 8099
    🔗 Ingress mode: Available in Home Assistant sidebar
@@ -90,7 +91,7 @@
 
 ---
 
-### Ingress Not Working (Port 8765 Works)
+### Ingress Not Working (Direct 8765 Works)
 
 **Symptoms:**
 - Direct access `http://HA_IP:8765` działa
@@ -108,7 +109,7 @@
    ha supervisor restart
    ```
 
-3. **Sprawdź czy addon nasłuchuje na porcie 8099:**
+3. **Sprawdź czy addon nasłuchuje na porcie 8099 (w HA):**
    ```
    W logach: "HTTP server running on port 8099"
    ```
@@ -159,7 +160,7 @@ docker exec -it addon_tauron_reader sh
 # Test połączenia
 ./tauron-reader -test-db
 
-# Test Tauron service
+# (Opcjonalnie) Test Tauron service – ręcznie
 ./tauron-reader -test-service
 ```
 
@@ -182,8 +183,7 @@ cat /data/options.json
 📋 Config loaded: { database: {...}, tauron: {...} }
 🔍 Testing database connection...
 ✅ Database connection OK
-🔍 Testing Tauron service connection...
-✅ Tauron service connection OK
+ℹ️ Skipping Tauron service test at startup (anti rate limit)
 ⏰ Setting up scheduled tasks...
 📅 Scheduling task at 02:00
 📅 Scheduling task at 10:00
@@ -209,7 +209,7 @@ Error: connect ECONNREFUSED 10.1.0.100:3306
 
 **Tauron Error:**
 ```
-⚠️ Tauron service connection failed (will retry during scheduled runs)
+⚠️ Tauron service connection failed (use manual test or wait for schedule)
 Tauron error: Incorrect password
 ```
 → Sprawdź hasło do konta Tauron
@@ -221,6 +221,8 @@ Tauron error: Incorrect password
 ### Outbound Access Required:
 - **Tauron API:** `https://elicznik.tauron-dystrybucja.pl`
 - **Chart.js CDN:** `https://cdn.jsdelivr.net`
+
+Uwaga: komunikaty w konsoli przeglądarki typu „The Material theme is deprecated and will be removed in Vaadin 25” pochodzą z frontend’u Home Assistanta i nie są związane z tym dodatkiem.
 
 ### Inbound Access Required:
 - **MySQL Database:** Konfigurowalny port (domyślnie 3306)
