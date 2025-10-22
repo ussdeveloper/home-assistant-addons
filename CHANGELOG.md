@@ -14,6 +14,10 @@
 - **Manual trigger button**: Restored missing `runNow()` on the client; the "Refresh Tauron" button now invokes `/run-now`
 - **HA ingress aware**: Uses detected `basePath` so it works reliably inside Home Assistant ingress
 
+## [3.9.4] - 2025-10-22
+### Changed
+- **Startup behavior**: Removed Tauron service connection test at startup to prevent rate limiting. Service is only contacted on schedule or manual trigger.
+
 ## [3.9.1] - 2025-10-22
 ### Fixed
 - **Chart transparency issue**: Reduced base opacity to 0.3–0.6, but background remained opaque due to hex colors (superseded by 3.9.2)

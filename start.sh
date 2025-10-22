@@ -34,13 +34,8 @@ else
     exit 1
 fi
 
-# Test Tauron service connection (non-critical)
-echo "🔍 Testing Tauron service connection..."
-if ./tauron-reader -test-service; then
-    echo "✅ Tauron service connection OK"
-else
-    echo "⚠️ Tauron service connection failed (will retry during scheduled runs)"
-fi
+# Do NOT test Tauron service connection at startup to avoid rate limiting
+# Intentionally skipped per addon policy (fetch only via schedule or manual trigger)
 
 # Start the Node.js server
 echo "🌐 Starting web server on port 8765..."
