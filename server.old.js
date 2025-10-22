@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cron = require('node-cron');
+const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 
@@ -10,14 +11,10 @@ const PORT = 8765;
 // Load configuration
 let config;
 try {
-  // Try Home Assistant path first, then local fallback
-  const configPath = fs.existsSync('/data/options.json') 
-    ? '/data/options.json' 
-    : './options.json';
-  config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  console.log(`✅ Loaded config from ${configPath}`);
+  config = JSON.parse(fs.readFileSync('/data/options.json', 'utf8'));
+  console.log('✅ Loaded config from /data/options.json');
 } catch (err) {
-  console.log('❌ Failed to load configuration:', err.message);
+  console.log('❌ Failed to load /data/options.json:', err.message);
   process.exit(1);
 }
 
@@ -37,7 +34,7 @@ console.log('📋 Config loaded:', {
   http: { port: config.http.port }
 });
 
-// Database connection helper
+// Database connection
 async function connectDB() {
   return await mysql.createConnection({
     host: config.database.host,
@@ -45,51 +42,6 @@ async function connectDB() {
     user: config.database.user,
     password: config.database.password,
     database: config.database.name
-  });
-}
-
-// Call tauron-reader binary with arguments
-async function callTauronReader(args = []) {
-  return new Promise((resolve, reject) => {
-    console.log(`🔌 Calling tauron-reader with args: [${args.join(', ')}]`);
-    
-    // Determine working directory (Docker vs local)
-    const cwd = fs.existsSync('/app') ? '/app' : process.cwd();
-    
-    const tauronReader = spawn('./tauron-reader', args, {
-      cwd: cwd,
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-    
-    let stdout = '';
-    let stderr = '';
-    
-    tauronReader.stdout.on('data', (data) => {
-      const output = data.toString().trim();
-      stdout += output + '\n';
-      if (output) console.log('📊', output);
-    });
-    
-    tauronReader.stderr.on('data', (data) => {
-      const output = data.toString().trim();
-      stderr += output + '\n';
-      if (output) console.log('⚠️', output);
-    });
-    
-    tauronReader.on('close', (code) => {
-      console.log(`✅ tauron-reader exited with code ${code}`);
-      
-      if (code === 0) {
-        resolve({ success: true, stdout, stderr });
-      } else {
-        reject(new Error(`tauron-reader failed with code ${code}: ${stderr || stdout}`));
-      }
-    });
-    
-    tauronReader.on('error', (err) => {
-      console.log('❌ Failed to start tauron-reader:', err.message);
-      reject(err);
-    });
   });
 }
 
@@ -117,12 +69,54 @@ async function testTauronService() {
   }
 }
 
-// Get energy statistics from database
+// Call tauron-reader binary to fetch data
+async function callTauronReader(args = []) {
+  return new Promise((resolve, reject) => {
+    console.log(`Calling tauron-reader with args: [${args.join(', ')}]`);
+    
+    const tauronReader = spawn('./tauron-reader', args, {
+      cwd: '/app',
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    
+    let stdout = '';
+    let stderr = '';
+    
+    tauronReader.stdout.on('data', (data) => {
+      const output = data.toString().trim();
+      stdout += output + '\n';
+      if (output) console.log('Output:', output);
+    });
+    
+    tauronReader.stderr.on('data', (data) => {
+      const output = data.toString().trim();
+      stderr += output + '\n';
+      if (output) console.log('Error:', output);
+    });
+    
+    tauronReader.on('close', (code) => {
+      console.log(`tauron-reader exited with code ${code}`);
+      
+      if (code === 0) {
+        resolve({ success: true, stdout, stderr });
+      } else {
+        reject(new Error(`tauron-reader failed with code ${code}: ${stderr || stdout}`));
+      }
+    });
+    
+    tauronReader.on('error', (err) => {
+      console.log('Failed to start tauron-reader:', err.message);
+      reject(err);
+    });
+  });
+}
+
+// Get energy statistics
 async function getEnergyStats() {
   const db = await connectDB();
   
   try {
-    // Get today's data
+    // Get today's consumption and production
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().slice(0, 10);
@@ -136,7 +130,7 @@ async function getEnergyStats() {
       WHERE DATE(ts_real) = ?
     `, [todayStr]);
     
-    // Get yesterday's data
+    // Get yesterday's data for comparison
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().slice(0, 10);
@@ -162,7 +156,7 @@ async function getEnergyStats() {
       WHERE ts_real >= ?
     `, [weekStartStr]);
     
-    // Get latest record
+    // Get latest record timestamp
     const [latestRows] = await db.execute(`
       SELECT ts_real 
       FROM ${config.database.table} 
@@ -220,6 +214,7 @@ async function fetchTauronData(force = false) {
   console.log('\n🚀 === Starting Tauron data fetch ===');
   
   try {
+    // Build arguments for tauron-reader
     const args = ['-verbose'];
     if (force) {
       args.push('-force');
@@ -244,7 +239,7 @@ async function fetchTauronData(force = false) {
   }
 }
 
-// Web interface routes
+// Web interface
 app.get('/', async (req, res) => {
   try {
     const stats = await getEnergyStats();
@@ -253,7 +248,6 @@ app.get('/', async (req, res) => {
       <html>
       <head>
         <title>Tauron Reader</title>
-        <meta charset="utf-8">
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
           .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -263,17 +257,11 @@ app.get('/', async (req, res) => {
           .stat-value { font-size: 2em; font-weight: bold; color: #007bff; }
           .stat-label { color: #666; margin-top: 5px; }
           .controls { text-align: center; margin-bottom: 30px; }
-          .btn { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; margin: 5px; }
+          .btn { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; }
           .btn:hover { background: #0056b3; }
-          .btn-secondary { background: #6c757d; }
-          .btn-secondary:hover { background: #545b62; }
           .section { margin-bottom: 30px; }
           .section h3 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 5px; }
           .info { background: #e9ecef; padding: 15px; border-radius: 6px; }
-          ul { list-style: none; padding: 0; }
-          ul li { padding: 5px 0; }
-          a { color: #007bff; text-decoration: none; }
-          a:hover { text-decoration: underline; }
         </style>
       </head>
       <body>
@@ -304,21 +292,17 @@ app.get('/', async (req, res) => {
           
           <div class="controls">
             <button onclick="runNow()" class="btn">▶️ Uruchom teraz</button>
-            <button onclick="checkStatus()" class="btn btn-secondary">📊 Sprawdź status</button>
           </div>
           
           <div class="section">
             <h3>📅 Harmonogram</h3>
             <div class="info">
-              <ul>${config.schedule.times.map(time => `<li>⏰ ${time}</li>`).join('')}</ul>
+              <ul>${config.schedule.times.map(time => `<li>${time}</li>`).join('')}</ul>
             </div>
           </div>
           
           <div class="section">
-            <h3>📊 Historia uruchomień</h3>
-            <div class="info">
-              <a href="/api/runs" target="_blank">Zobacz szczegóły</a>
-            </div>
+            <h3>📊 <a href="/api/runs">Ostatnie uruchomienia</a></h3>
           </div>
         </div>
         
@@ -326,21 +310,10 @@ app.get('/', async (req, res) => {
           function runNow() {
             if (confirm('Czy na pewno chcesz uruchomić pobieranie danych?')) {
               fetch('/run-now').then(() => {
-                alert('Rozpoczęto pobieranie danych! Sprawdź logi za kilka sekund.');
+                alert('Rozpoczęto pobieranie danych! Odśwież stronę za kilka minut.');
+                location.reload();
               });
             }
-          }
-          
-          function checkStatus() {
-            fetch('/api/status')
-              .then(r => r.json())
-              .then(data => {
-                if (data.success) {
-                  alert('Status:\\n\\n' + data.status);
-                } else {
-                  alert('Błąd: ' + data.error);
-                }
-              });
           }
         </script>
       </body>
@@ -350,17 +323,6 @@ app.get('/', async (req, res) => {
     console.log('❌ Failed to load stats:', err.message);
     res.send(`
       <html>
-      <head><title>Tauron Reader - Error</title></head>
-      <body style="font-family: Arial, sans-serif; margin: 20px;">
-        <h1>❌ Błąd ładowania statystyk</h1>
-        <p>${err.message}</p>
-        <button onclick="location.reload()">Odśwież</button>
-      </body>
-      </html>
-    `);
-  }
-});
-
 app.get('/run-now', async (req, res) => {
   res.send('Manual run started. Check logs for status.');
   // Run with force flag to bypass throttle
@@ -374,29 +336,20 @@ app.get('/api/status', async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
-});
-
-app.get('/api/runs', (req, res) => {
-  try {
-    const logs = fs.readFileSync('/data/buffer/runs.log.jsonl', 'utf8')
-      .trim().split('\n')
-      .filter(line => line.trim())
-      .slice(-50)
-      .map(line => JSON.parse(line))
-      .reverse();
-    res.json(logs);
-  } catch (err) {
-    res.json([]);
+});     <p>${err.message}</p>
+        <button onclick="location.reload()">Odśwież</button>
+      </body>
+      </html>
+    `);
   }
 });
 
-// Start server
-async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.0.0 ===');
-  console.log('📅 Startup time:', new Date().toISOString());
-  console.log('🔧 Node.js version:', process.version);
-  console.log('📁 Working directory:', process.cwd());
-  
+app.get('/run-now', async (req, res) => {
+  res.send('Manual run started. Check logs for status.');
+  await fetchTauronData();
+});
+
+app.get('/api/runs', (req, res) => {
   // Test database
   const dbOk = await testDB();
   if (!dbOk) {
@@ -405,25 +358,22 @@ async function start() {
   }
   
   // Test Tauron service (non-critical)
-  await testTauronService();
+  await testTauronService();   .reverse();
+    res.json(logs);
+  } catch (err) {
+    res.json([]);
+  }
+});
+
+// Start server
+async function start() {
+  console.log('🎯 === Tauron Reader Addon v2.0.0 ===');
+  console.log('📅 Startup time:', new Date().toISOString());
+  console.log('🔧 Node.js version:', process.version);
+  console.log('📁 Working directory:', process.cwd());
+  console.log('🌐 Environment variables:', Object.keys(process.env).filter(k => k.includes('HASSIO')));
   
-  // Setup cron jobs
-  console.log('⏰ Setting up scheduled tasks...');
-  config.schedule.times.forEach(time => {
-    console.log(`📅 Scheduling task at ${time}`);
-    const [hour, minute] = time.split(':');
-    cron.schedule(`${minute} ${hour} * * *`, () => fetchTauronData(false));
-  });
-  
-  // Start web server
-  const isIngress = process.env.HASSIO_TOKEN ? true : false;
-  app.listen(PORT, () => {
-    console.log(`🌐 HTTP server running on port ${PORT}`);
-    if (isIngress) {
-      console.log('🔗 Ingress mode: Available in Home Assistant sidebar');
-    } else {
-      console.log(`🔗 Direct access: http://YOUR_HA_IP:${PORT}`);
-    }
+  // Test database
     console.log('✅ === Addon ready ===\n');
     
     // Perform initial data fetch after startup
@@ -437,6 +387,29 @@ async function start() {
         }
       });
     }, 10000); // Wait 10 seconds after startup
+    cron.schedule(`${minute} ${hour} * * *`, fetchTauronData);
+  });
+  
+  // Start web server
+  const isIngress = process.env.HASSIO_TOKEN ? true : false;
+  app.listen(PORT, () => {
+    console.log(`🌐 HTTP server running on port ${PORT}`);
+    if (isIngress) {
+      console.log('🔗 Ingress mode: Available in Home Assistant sidebar');
+    } else {
+      console.log('🔗 Direct access: http://YOUR_HA_IP:${PORT}');
+    }
+    console.log('✅ === Addon ready ===\n');
+    
+    // Log initial run for verification
+    console.log('🚀 Performing initial test run...');
+    setTimeout(() => {
+      fetchTauronData().then(() => {
+        console.log('✅ Initial test run completed');
+      }).catch(err => {
+        console.log('⚠️ Initial test run failed:', err.message);
+      });
+    }, 5000); // Wait 5 seconds after startup
   });
 }
 

@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Configuration (contains sensitive data)
+tauron-db-config.json
+options.json
+
+# Data and logs
+buffer/
+*.log
+*.log.jsonl
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

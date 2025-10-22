@@ -9,15 +9,19 @@ COPY package.json ./
 # Install dependencies
 RUN npm install --production
 
-# Copy application
+# Copy application files
 COPY server.js ./
 COPY tauron-reader ./
+COPY start.sh ./
 
-# Make Go binary executable
-RUN chmod +x tauron-reader
+# Make scripts executable
+RUN chmod +x tauron-reader start.sh
+
+# Create data directory for persistent storage
+RUN mkdir -p /data/buffer
 
 # Expose port
 EXPOSE 8765
 
-# Start application
-CMD ["npm", "start"]
+# Start application using start script
+CMD ["/bin/sh", "start.sh"]

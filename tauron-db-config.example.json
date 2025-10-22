@@ -1,0 +1,20 @@
+{
+  "database": {
+    "host": "localhost",
+    "port": 3306,
+    "user": "your_db_user",
+    "password": "your_db_password",
+    "name": "your_database",
+    "table": "energy_extend"
+  },
+  "tauron": {
+    "username": "your_tauron_email@example.com",
+    "password": "your_tauron_password"
+  },
+  "schedule": {
+    "times": ["02:00", "10:00", "14:30"]
+  },
+  "http": {
+    "port": 8765
+  }
+}
