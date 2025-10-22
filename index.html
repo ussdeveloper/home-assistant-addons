@@ -253,6 +253,17 @@
       color: #58a6ff;
     }
 
+    /* Legend color dots for controls */
+    .legend-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: -1px;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
     /* Scrollbar */
     ::-webkit-scrollbar {
       width: 8px;
@@ -274,7 +285,7 @@
   <div class="chart-section">
     <div class="chart-top-bar">
       <div style="display: flex; gap: 15px; align-items: center;">
-        <div class="chart-title">📊 Produkcja i zużycie energii - 12 miesięcy</div>
+        <div class="chart-title">📊 Stats</div>
         <div class="year-selector">
           <div id="yearCheckboxes" style="display: flex; gap: 8px; flex-wrap: wrap;">
             <!-- Year checkboxes will be populated by JavaScript -->
@@ -285,11 +296,11 @@
         <div class="checkbox-group" id="chartOptions">
           <label>
             <input type="checkbox" id="showProduction" checked onchange="updateChart()">
-            <span>🟢 Produkcja</span>
+            <span><span class="legend-dot" id="prodDot" style="background:#1f77b4"></span>Produkcja</span>
           </label>
           <label>
             <input type="checkbox" id="showConsumption" checked onchange="updateChart()">
-            <span>🔴 Zużycie</span>
+            <span><span class="legend-dot" id="consDot" style="background:#aec7e8"></span>Zużycie</span>
           </label>
         </div>
         <button class="btn btn-secondary" onclick="runNow()">🔄 Refresh Tauron</button>
@@ -415,16 +426,16 @@
 
       if (type === 'monthly') {
         titleEl.textContent = '📊 Produkcja energii';
-        optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span>🟢 Produkcja</span></label>';
+        optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span><span class="legend-dot" id="prodDot" style="background:#1f77b4"></span>Produkcja</span></label>';
       } else if (type === '2years') {
         titleEl.textContent = '📊 Produkcja i zużycie - 2 lata';
-        optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span>🟢 Produkcja</span></label><label><input type="checkbox" id="showConsumption" checked onchange="updateChart()"><span>🔴 Zużycie</span></label>';
+        optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span><span class="legend-dot" id="prodDot" style="background:#1f77b4"></span>Produkcja</span></label><label><input type="checkbox" id="showConsumption" checked onchange="updateChart()"><span><span class="legend-dot" id="consDot" style="background:#aec7e8"></span>Zużycie</span></label>';
       } else if (type === 'yearly') {
         titleEl.textContent = '📊 Od roku do teraz';
-        optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span>🟢 Produkcja</span></label>';
+        optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span><span class="legend-dot" id="prodDot" style="background:#1f77b4"></span>Produkcja</span></label>';
       } else {
         titleEl.textContent = '📊 Ostatnie 24h';
-        optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span>🟢 Produkcja</span></label><label><input type="checkbox" id="showConsumption" checked onchange="updateChart()"><span>🔴 Zużycie</span></label>';
+        optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span><span class="legend-dot" id="prodDot" style="background:#1f77b4"></span>Produkcja</span></label><label><input type="checkbox" id="showConsumption" checked onchange="updateChart()"><span><span class="legend-dot" id="consDot" style="background:#aec7e8"></span>Zużycie</span></label>';
       }
 
       updateChart();
@@ -456,6 +467,22 @@
       }
 
       console.log('Selected years:', selectedYears);
+
+      // Helper: convert hex color to rgba string with alpha
+      function hexToRgba(hex, alpha) {
+        if (!hex) return 'rgba(0,0,0,' + alpha + ')';
+        var h = hex.replace('#','');
+        if (h.length === 3) {
+          h = h[0]+h[0] + h[1]+h[1] + h[2]+h[2];
+        }
+        var r = parseInt(h.substring(0,2), 16);
+        var g = parseInt(h.substring(2,4), 16);
+        var b = parseInt(h.substring(4,6), 16);
+        var a = alpha;
+        if (a < 0) a = 0;
+        if (a > 1) a = 1;
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+      }
 
       // Fetch data for all selected years
       var promises = selectedYears.map(function(year) {
@@ -507,6 +534,17 @@
             { production: '#7f7f7f', consumption: '#c7c7c7' }
           ];
 
+          // Update legend dots to match the newest selected year's colors
+          // Use palette for the first dataset if available
+          if (yearDataArray.length > 0) {
+            var firstPaletteIndex = 0 % yearColorPalettes.length;
+            var firstColors = yearColorPalettes[firstPaletteIndex];
+            var prodDot = document.getElementById('prodDot');
+            var consDot = document.getElementById('consDot');
+            if (prodDot) { prodDot.style.backgroundColor = firstColors.production; }
+            if (consDot) { consDot.style.backgroundColor = firstColors.consumption; }
+          }
+
           yearDataArray.forEach(function(yearData, yearIndex) {
             // Get color palette for this year (cycle through palettes if more than 8 years)
             var paletteIndex = yearIndex % yearColorPalettes.length;
@@ -522,7 +560,9 @@
                 data: yearData.production,
                 borderColor: colors.production,
                 backgroundColor: yearData.production.map(function(_, i) {
-                  return colors.production.replace(')', ', ' + (baseOpacity + (i / dataLength) * 0.3) + ')').replace('rgb', 'rgba');
+                  var alpha = baseOpacity + (i / (dataLength - 1)) * 0.3;
+                  if (alpha > 0.6) alpha = 0.6;
+                  return hexToRgba(colors.production, alpha);
                 }),
                 tension: 0.4,
                 fill: true,
@@ -541,7 +581,9 @@
                 data: yearData.consumption,
                 borderColor: colors.consumption,
                 backgroundColor: yearData.consumption.map(function(_, i) {
-                  return colors.consumption.replace(')', ', ' + (baseOpacity + (i / dataLength) * 0.3) + ')').replace('rgb', 'rgba');
+                  var alpha = baseOpacity + (i / (dataLength - 1)) * 0.3;
+                  if (alpha > 0.6) alpha = 0.6;
+                  return hexToRgba(colors.consumption, alpha);
                 }),
                 tension: 0.4,
                 fill: true,

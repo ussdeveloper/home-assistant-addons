@@ -1,13 +1,17 @@
 # Changelog
 
-## [3.9.1] - 2025-10-22
+## [3.9.2] - 2025-10-22
 ### Fixed
-- **Chart transparency issue**: Fixed overlapping chart data by reducing opacity from 0.8-1.1 to 0.3-0.6 range
-- **Multiple year visibility**: Charts with multiple selected years now display properly without data being obscured
+- **True transparency on charts**: Background fills now use RGBA converted from hex colors (previously hex colors stayed opaque)
+- **Consistent control colors**: Added colored legend dots next to "Produkcja" and "Zużycie" that match chart palette
 
 ### Technical Details
-- **Opacity adjustment**: Changed baseOpacity from 0.8 to 0.3 to prevent overlapping filled areas
-- **Layer visibility**: Multiple datasets (production/consumption across years) now remain visible when overlaid
+- Implemented `hexToRgba()` helper and applied per-point alpha (0.3–0.6) for fills
+- Updated UI controls (and tab switcher) to render `.legend-dot` elements and update their colors dynamically
+
+## [3.9.1] - 2025-10-22
+### Fixed
+- **Chart transparency issue**: Reduced base opacity to 0.3–0.6, but background remained opaque due to hex colors (superseded by 3.9.2)
 
 ## [3.9.0] - 2025-10-22
 ### Changed
