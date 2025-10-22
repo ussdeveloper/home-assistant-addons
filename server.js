@@ -392,7 +392,7 @@ app.get('/api/runs', (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.0.0 ===');
+  console.log('🎯 === Tauron Reader Addon v3.0.1 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
