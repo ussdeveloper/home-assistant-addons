@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.8.0] - 2025-10-22
+### Changed
+- **Date labels shifted back by one day**: "DZISIAJ" now shows yesterday's data, "WCZORAJ" shows day before yesterday's data (based on real_ts)
+- **Chart transparency adjusted**: Increased opacity from 40%-70% to 50%-80% for lightly transparent charts (not glass-like)
+
+### Technical Details
+- **Date calculation**: Modified getEnergyStats() to shift date queries back by one day
+- **UI labels**: DZISIAJ = yesterday's data, WCZORAJ = day before yesterday's data
+- **Chart opacity**: Adjusted baseOpacity from 0.4 to 0.5 for better visibility while maintaining transparency
+
 ## [3.7.0] - 2025-10-22
 ### Added
 - **Total Production Summary**: New section showing total production (kWh) for each year

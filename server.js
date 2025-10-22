@@ -231,9 +231,14 @@ async function getEnergyStats() {
   const db = await connectDB();
   
   try {
-    // Get today's data
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Calculate dates: shift back by one day for labels
+    // "DZISIAJ" shows yesterday's data, "WCZORAJ" shows day before yesterday
+    const actualToday = new Date();
+    actualToday.setHours(0, 0, 0, 0);
+    
+    // "DZISIAJ" = yesterday's data
+    const today = new Date(actualToday);
+    today.setDate(today.getDate() - 1);
     const todayStr = today.toISOString().slice(0, 10);
     
     const [todayRows] = await db.execute(`
@@ -245,9 +250,9 @@ async function getEnergyStats() {
       WHERE DATE(ts_real) = ?
     `, [todayStr]);
     
-    // Get yesterday's data
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    // "WCZORAJ" = day before yesterday's data
+    const yesterday = new Date(actualToday);
+    yesterday.setDate(yesterday.getDate() - 2);
     const yesterdayStr = yesterday.toISOString().slice(0, 10);
     
     const [yesterdayRows] = await db.execute(`
@@ -721,7 +726,7 @@ app.get('/api/total-production', async (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.7.0 ===');
+  console.log('🎯 === Tauron Reader Addon v3.8.0 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
