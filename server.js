@@ -322,7 +322,7 @@ app.get('/', async (req, res) => {
           .chart-section {
             width: 100%;
             background: #161b22;
-            height: 250px;
+            height: 230px;
             display: flex;
             flex-direction: column;
             border-bottom: 1px solid #30363d;
@@ -331,11 +331,12 @@ app.get('/', async (req, res) => {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 15px;
+            padding: 5px 15px;
             background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
             border-bottom: 1px solid #30363d;
             box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            height: 45px;
+            height: 30px;
+            flex-shrink: 0;
           }
           .chart-title {
             font-size: 14px;
@@ -429,10 +430,11 @@ app.get('/', async (req, res) => {
           
           .section-header {
             background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
-            padding: 10px 15px;
+            padding: 5px 15px;
             border-bottom: 1px solid #30363d;
             box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            height: 40px;
+            height: 30px;
+            flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -652,11 +654,24 @@ app.get('/', async (req, res) => {
             
             try {
               // Fetch real data from API (use relative path for ingress)
+              console.log('Fetching chart data from:', basePath + '/api/chart-data');
               const response = await fetch(basePath + '/api/chart-data');
               const data = await response.json();
               
+              console.log('Chart data received:', data);
+              
               if (!data.success) {
                 console.error('Failed to load chart data:', data.error);
+                // Show error in chart area
+                document.querySelector('.chart-container').innerHTML = 
+                  '<div style="color: #f85149; text-align: center; padding: 40px;">❌ Błąd ładowania danych: ' + data.error + '</div>';
+                return;
+              }
+              
+              if (!data.labels || data.labels.length === 0) {
+                console.warn('No data available for chart');
+                document.querySelector('.chart-container').innerHTML = 
+                  '<div style="color: #8b949e; text-align: center; padding: 40px;">📊 Brak danych w ostatnich 24h</div>';
                 return;
               }
               
@@ -668,7 +683,8 @@ app.get('/', async (req, res) => {
                   borderColor: '#3fb950',
                   backgroundColor: 'rgba(63, 185, 80, 0.1)',
                   tension: 0.4,
-                  fill: true
+                  fill: true,
+                  borderWidth: 2
                 });
               }
               if (showConsumption) {
@@ -678,13 +694,22 @@ app.get('/', async (req, res) => {
                   borderColor: '#f85149',
                   backgroundColor: 'rgba(248, 81, 73, 0.1)',
                   tension: 0.4,
-                  fill: true
+                  fill: true,
+                  borderWidth: 2
                 });
               }
               
               if (chart) chart.destroy();
               
-              chart = new Chart(ctx, {
+              // Recreate canvas if it was replaced with error message
+              const container = document.querySelector('.chart-container');
+              if (!document.getElementById('energyChart')) {
+                container.innerHTML = '<canvas id="energyChart"></canvas>';
+              }
+              
+              const newCtx = document.getElementById('energyChart').getContext('2d');
+              
+              chart = new Chart(newCtx, {
                 type: 'line',
                 data: {
                   labels: data.labels,
@@ -842,7 +867,7 @@ app.get('/api/chart-data', async (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.2.0 ===');
+  console.log('🎯 === Tauron Reader Addon v3.2.1 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());

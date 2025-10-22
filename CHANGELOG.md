@@ -2,6 +2,17 @@
 
 # Changelog
 
+## [3.2.1] - 2025-10-22
+
+### Fixed
+- **Layout Dimensions** - Corrected to match UI.drawio specification:
+  - Chart section: 230px (30px header + 200px chart)
+  - Bottom sections: flex-fill (30px header + scrollable content)
+- **Chart Error Handling** - Added comprehensive error messages and debug logging
+- **Empty Data Handling** - Graceful handling when no data available in 24h period
+- **Chart Recreation** - Fixed canvas recreation after error states
+- **API Data Flow** - Verified database query returns proper hourly aggregated data
+
 ## [3.2.0] - 2025-10-22
 
 ### Enhanced
