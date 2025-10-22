@@ -1,6 +1,18 @@
 # Changelog
 
-## [3.3.13] - 2025-10-22
+## [3.4.0] - 2025-10-22
+### Added
+- **Multi-Year Chart Selection**: Replaced single year dropdown with checkboxes allowing selection of multiple years (up to 5 for UI clarity)
+- **Consumption Checkbox Restored**: Added back 🔴 Zużycie (Consumption) checkbox alongside 🟢 Produkcja (Production)
+- **12-Month Scale Guarantee**: Chart always displays exactly 12 months regardless of year selection
+- **Visual Year Distinction**: Implemented opacity gradients where older years have lower opacity (0.1) and newer years have higher opacity (0.8)
+- **Smart Data Loading**: Uses Promise.all() to fetch data for all selected years simultaneously for better performance
+
+### Enhanced
+- **Chart Interface**: Updated updateChart() function to handle multiple year selection with proper data aggregation
+- **UI Controls**: Year checkboxes with hover effects, production/consumption toggles, proper event handling
+- **API Optimization**: Removed duplicate /api/chart-data-yearly endpoint for cleaner codebase
+- **Chart.js Integration**: Enhanced legend display with year-specific labels and improved visual hierarchy
 ### Added
 - Automatic database table creation if table doesn't exist
 - Uses table name from HA config for table creation

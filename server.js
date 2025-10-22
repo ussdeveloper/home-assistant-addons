@@ -3,6 +3,7 @@ const mysql = require('mysql2/promise');
 const cron = require('node-cron');
 const { spawn } = require('child_process');
 const fs = require('fs');
+const path = require('path');
 
 const app = express();
 
@@ -159,8 +160,8 @@ async function testDB() {
             \`Id\` int(11) NOT NULL AUTO_INCREMENT,
             \`ts\` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
             \`ts_real\` datetime DEFAULT NULL,
-            \`consumption\` double(11,3) unsigned DEFAULT NULL,
-            \`production\` double(11,3) unsigned DEFAULT NULL,
+            \`ec\` double(11,3) unsigned DEFAULT NULL,
+            \`oze\` double(11,3) unsigned DEFAULT NULL,
             \`temperatire_air\` double(11,3) DEFAULT NULL,
             \`temperature_comfort\` double(11,3) DEFAULT NULL,
             \`cloudiness\` double(11,3) unsigned DEFAULT NULL,
@@ -175,6 +176,32 @@ async function testDB() {
         console.log(`✅ Table '${tableName}' created successfully`);
       } else {
         console.log(`✅ Table '${tableName}' already exists`);
+
+        // Check if we need to migrate old column names
+        try {
+          const [columns] = await db.execute(`
+            SELECT COLUMN_NAME
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME IN ('consumption', 'production')
+          `, [config.database.name, tableName]);
+
+          if (columns.length > 0) {
+            console.log('🔄 Migrating old column names to new schema...');
+
+            // Rename columns if they exist
+            for (const col of columns) {
+              if (col.COLUMN_NAME === 'consumption') {
+                await db.execute(`ALTER TABLE \`${tableName}\` CHANGE \`consumption\` \`ec\` double(11,3) unsigned DEFAULT NULL`);
+                console.log('✅ Renamed column: consumption → ec');
+              } else if (col.COLUMN_NAME === 'production') {
+                await db.execute(`ALTER TABLE \`${tableName}\` CHANGE \`production\` \`oze\` double(11,3) unsigned DEFAULT NULL`);
+                console.log('✅ Renamed column: production → oze');
+              }
+            }
+          }
+        } catch (migrationErr) {
+          console.log('⚠️ Column migration check failed:', migrationErr.message);
+        }
       }
 
       return true;
@@ -211,8 +238,8 @@ async function getEnergyStats() {
     
     const [todayRows] = await db.execute(`
       SELECT 
-        SUM(consumption) as total_consumption,
-        SUM(production) as total_production,
+        SUM(ec) as total_consumption,
+        SUM(oze) as total_production,
         COUNT(*) as records
       FROM ${config.database.table} 
       WHERE DATE(ts_real) = ?
@@ -225,8 +252,8 @@ async function getEnergyStats() {
     
     const [yesterdayRows] = await db.execute(`
       SELECT 
-        SUM(consumption) as total_consumption,
-        SUM(production) as total_production
+        SUM(ec) as total_consumption,
+        SUM(oze) as total_production
       FROM ${config.database.table} 
       WHERE DATE(ts_real) = ?
     `, [yesterdayStr]);
@@ -238,8 +265,8 @@ async function getEnergyStats() {
     
     const [weekRows] = await db.execute(`
       SELECT 
-        SUM(consumption) as total_consumption,
-        SUM(production) as total_production
+        SUM(ec) as total_consumption,
+        SUM(oze) as total_production
       FROM ${config.database.table} 
       WHERE ts_real >= ?
     `, [weekStartStr]);
@@ -348,7 +375,7 @@ app.get('/', async (req, res) => {
     const logs = getRecentLogs(20);
     
     // Read HTML template
-    let html = fs.readFileSync('index.html', 'utf8');
+    let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
     
     // Replace template placeholders
     html = html.replace('{{LOG_COUNT}}', logs.length);
@@ -472,33 +499,97 @@ app.get('/api/chart-data-yearly', async (req, res) => {
       database: config.database.name
     });
 
-    const currentYear = new Date().getFullYear();
+    // Get year from query parameter, default to current year
+    const selectedYear = parseInt(req.query.year) || new Date().getFullYear();
 
-    // Get monthly totals for current year
+    // Get monthly totals for selected year - both production and consumption
     const [rows] = await db.execute(`
-      SELECT 
+      SELECT
         MONTH(ts_real) as month,
+        SUM(ec) / 1000 as total_consumption,
         SUM(oze) / 1000 as total_production
       FROM ${config.database.table}
       WHERE YEAR(ts_real) = ?
       GROUP BY month
       ORDER BY month ASC
-    `, [currentYear]);
+    `, [selectedYear]);
 
     await db.end();
 
     const monthNames = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
     const labels = rows.map(r => monthNames[r.month - 1]);
+    const consumption = rows.map(r => parseFloat(r.total_consumption || 0).toFixed(2));
     const production = rows.map(r => parseFloat(r.total_production || 0).toFixed(2));
 
     res.json({
       success: true,
       labels,
+      consumption,
       production,
-      year: currentYear
+      year: selectedYear
     });
   } catch (err) {
     console.log('❌ Chart yearly data error:', err.message);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// API endpoint for 2 years comparison (production and consumption by months)
+app.get('/api/chart-data-2years', async (req, res) => {
+  try {
+    const db = await mysql.createConnection({
+      host: config.database.host,
+      port: config.database.port,
+      user: config.database.user,
+      password: config.database.password,
+      database: config.database.name
+    });
+
+    const currentYear = new Date().getFullYear();
+    const previousYear = currentYear - 1;
+
+    // Get monthly totals for last 2 years
+    const [rows] = await db.execute(`
+      SELECT
+        YEAR(ts_real) as year,
+        MONTH(ts_real) as month,
+        SUM(ec) / 1000 as total_consumption,
+        SUM(oze) / 1000 as total_production
+      FROM ${config.database.table}
+      WHERE YEAR(ts_real) IN (?, ?)
+      GROUP BY year, month
+      ORDER BY year ASC, month ASC
+    `, [previousYear, currentYear]);
+
+    await db.end();
+
+    // Create labels and data arrays
+    const monthNames = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
+    const labels = [];
+    const consumption = [];
+    const production = [];
+
+    // Initialize arrays for both years
+    for (let year = previousYear; year <= currentYear; year++) {
+      for (let month = 1; month <= 12; month++) {
+        const label = `${monthNames[month - 1]} ${year}`;
+        labels.push(label);
+
+        const row = rows.find(r => r.year === year && r.month === month);
+        consumption.push(parseFloat((row?.total_consumption || 0)).toFixed(2));
+        production.push(parseFloat((row?.total_production || 0)).toFixed(2));
+      }
+    }
+
+    res.json({
+      success: true,
+      labels,
+      consumption,
+      production,
+      years: [previousYear, currentYear]
+    });
+  } catch (err) {
+    console.log('❌ Chart 2 years data error:', err.message);
     res.json({ success: false, error: err.message });
   }
 });
@@ -549,7 +640,7 @@ app.get('/api/chart-data', async (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.3.13 ===');
+  console.log('🎯 === Tauron Reader Addon v3.4.0 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
