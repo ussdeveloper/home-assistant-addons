@@ -688,32 +688,13 @@ app.get('/', async (req, res) => {
             
             if (type === 'monthly') {
               titleEl.textContent = '📊 Produkcja energii';
-              optionsEl.innerHTML = `
-                <label>
-                  <input type="checkbox" id="showProduction" checked onchange="updateChart()">
-                  <span>🟢 Produkcja</span>
-                </label>
-              `;
+              optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span>🟢 Produkcja</span></label>';
             } else if (type === 'yearly') {
               titleEl.textContent = '📊 Od roku do teraz';
-              optionsEl.innerHTML = `
-                <label>
-                  <input type="checkbox" id="showProduction" checked onchange="updateChart()">
-                  <span>🟢 Produkcja</span>
-                </label>
-              `;
+              optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span>🟢 Produkcja</span></label>';
             } else {
               titleEl.textContent = '📊 Ostatnie 24h';
-              optionsEl.innerHTML = `
-                <label>
-                  <input type="checkbox" id="showProduction" checked onchange="updateChart()">
-                  <span>🟢 Produkcja</span>
-                </label>
-                <label>
-                  <input type="checkbox" id="showConsumption" checked onchange="updateChart()">
-                  <span>🔴 Zużycie</span>
-                </label>
-              `;
+              optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span>🟢 Produkcja</span></label><label><input type="checkbox" id="showConsumption" checked onchange="updateChart()"><span>🔴 Zużycie</span></label>';
             }
             
             updateChart();
