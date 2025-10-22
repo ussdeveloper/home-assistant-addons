@@ -2,6 +2,12 @@
 
 # Changelog
 
+## [3.3.3] - 2025-10-22
+### Fixed
+- Replaced const/let with var for better browser compatibility
+- Fixed arrow functions to regular functions for older browsers
+- Removed optional chaining operator (?.) for compatibility
+
 ## [3.3.2] - 2025-10-22
 ### Fixed
 - Syntax error fix deployment (same as 3.3.1, version bump for Home Assistant update)

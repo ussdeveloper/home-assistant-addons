@@ -668,23 +668,23 @@ app.get('/', async (req, res) => {
         
         <script>
           // Ingress path support for Home Assistant
-          const basePath = window.location.pathname.replace(/\/$/, '');
+          var basePath = window.location.pathname.replace(/\/$/, '');
           
           // Chart setup
-          const ctx = document.getElementById('energyChart').getContext('2d');
-          let chart = null;
-          let currentChartType = 'monthly'; // default
+          var ctx = document.getElementById('energyChart').getContext('2d');
+          var chart = null;
+          var currentChartType = 'monthly'; // default
           
           function switchChartType(type) {
             currentChartType = type;
             
             // Update active tab
-            document.querySelectorAll('.chart-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.chart-tab').forEach(function(tab) { tab.classList.remove('active'); });
             event.target.classList.add('active');
             
             // Update title and options
-            const titleEl = document.querySelector('.chart-title');
-            const optionsEl = document.getElementById('chartOptions');
+            var titleEl = document.querySelector('.chart-title');
+            var optionsEl = document.getElementById('chartOptions');
             
             if (type === 'monthly') {
               titleEl.textContent = '📊 Produkcja energii';
@@ -701,12 +701,14 @@ app.get('/', async (req, res) => {
           }
           
           async function updateChart() {
-            const showProduction = document.getElementById('showProduction')?.checked || false;
-            const showConsumption = document.getElementById('showConsumption')?.checked || false;
+            var showProductionEl = document.getElementById('showProduction');
+            var showConsumptionEl = document.getElementById('showConsumption');
+            var showProduction = showProductionEl ? showProductionEl.checked : false;
+            var showConsumption = showConsumptionEl ? showConsumptionEl.checked : false;
             
             try {
               // Select API endpoint based on chart type
-              let apiUrl;
+              var apiUrl;
               if (currentChartType === 'monthly') {
                 apiUrl = basePath + '/api/chart-data-monthly';
               } else if (currentChartType === 'yearly') {
@@ -716,8 +718,8 @@ app.get('/', async (req, res) => {
               }
               
               console.log('Fetching chart data from:', apiUrl);
-              const response = await fetch(apiUrl);
-              const data = await response.json();
+              var response = await fetch(apiUrl);
+              var data = await response.json();
               
               console.log('Chart data received:', data);
               
@@ -735,7 +737,7 @@ app.get('/', async (req, res) => {
                 return;
               }
               
-              const datasets = [];
+              var datasets = [];
               
               // For monthly/yearly - only production
               if (currentChartType === 'monthly' || currentChartType === 'yearly') {
@@ -779,12 +781,12 @@ app.get('/', async (req, res) => {
               if (chart) chart.destroy();
               
               // Recreate canvas if it was replaced with error message
-              const container = document.querySelector('.chart-container');
+              var container = document.querySelector('.chart-container');
               if (!document.getElementById('energyChart')) {
                 container.innerHTML = '<canvas id="energyChart"></canvas>';
               }
               
-              const newCtx = document.getElementById('energyChart').getContext('2d');
+              var newCtx = document.getElementById('energyChart').getContext('2d');
               
               chart = new Chart(newCtx, {
                 type: 'line',
