@@ -2,6 +2,19 @@
 
 # Changelog
 
+## [3.2.0] - 2025-10-22
+
+### Enhanced
+- **Premium UI Design** - Major visual overhaul with modern aesthetics
+- **Gradient Backgrounds** - Smooth gradients on top bar and section headers
+- **Better Shadows** - Box shadows and depth throughout interface
+- **Interactive Elements** - Hover effects on checkboxes, logs, and status cards
+- **Improved Buttons** - Gradient buttons with hover animations and transforms
+- **Typography** - Better font weights, letter spacing, and text shadows
+- **Enhanced Cards** - Log entries and status items with borders and hover states
+- **Smooth Animations** - Transitions on all interactive elements
+- **Professional Polish** - Overall refinement of spacing, colors, and visual hierarchy
+
 ## [3.1.3] - 2025-10-22
 
 ### Changed

@@ -331,15 +331,18 @@ app.get('/', async (req, res) => {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 15px;
-            background: #0d1117;
-            border-bottom: 1px solid #21262d;
-            height: 40px;
+            padding: 10px 15px;
+            background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
+            border-bottom: 1px solid #30363d;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            height: 45px;
           }
           .chart-title {
-            font-size: 13px;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 700;
             color: #58a6ff;
+            letter-spacing: 0.3px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
           }
           .chart-menu {
             display: flex;
@@ -353,31 +356,52 @@ app.get('/', async (req, res) => {
           .checkbox-group label {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
             font-size: 11px;
             cursor: pointer;
             user-select: none;
             color: #8b949e;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+          }
+          .checkbox-group label:hover {
+            background: rgba(88, 166, 255, 0.1);
+            color: #c9d1d9;
           }
           .checkbox-group input[type="checkbox"] {
             cursor: pointer;
+            width: 14px;
+            height: 14px;
           }
           .btn {
-            background: #238636;
+            background: linear-gradient(180deg, #2ea043 0%, #238636 100%);
             color: white;
             border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
+            padding: 6px 14px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 11px;
-            font-weight: 500;
-            transition: background 0.2s;
+            font-weight: 600;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            letter-spacing: 0.3px;
           }
-          .btn:hover { background: #2ea043; }
+          .btn:hover {
+            background: linear-gradient(180deg, #3fb950 0%, #2ea043 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+          }
+          .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+          }
           .btn-secondary {
-            background: #1f6feb;
+            background: linear-gradient(180deg, #388bfd 0%, #1f6feb 100%);
           }
-          .btn-secondary:hover { background: #388bfd; }
+          .btn-secondary:hover {
+            background: linear-gradient(180deg, #58a6ff 0%, #388bfd 100%);
+          }
           
           .chart-container {
             position: relative;
@@ -404,19 +428,21 @@ app.get('/', async (req, res) => {
           }
           
           .section-header {
-            background: #0d1117;
-            padding: 8px 15px;
-            border-bottom: 1px solid #21262d;
-            height: 35px;
+            background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
+            padding: 10px 15px;
+            border-bottom: 1px solid #30363d;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: space-between;
           }
           
           .section-title {
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 13px;
+            font-weight: 700;
             color: #58a6ff;
+            letter-spacing: 0.3px;
           }
           
           .section-count {
@@ -434,14 +460,21 @@ app.get('/', async (req, res) => {
           /* Logi */
           .log-entry {
             background: #161b22;
-            border-left: 3px solid #238636;
-            padding: 8px 10px;
-            margin-bottom: 6px;
-            border-radius: 3px;
+            border-left: 3px solid #3fb950;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
             font-size: 11px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+          }
+          .log-entry:hover {
+            background: #1c2128;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transform: translateX(2px);
           }
           .log-entry.error {
-            border-left-color: #da3633;
+            border-left-color: #f85149;
           }
           .log-time {
             color: #8b949e;
@@ -455,10 +488,17 @@ app.get('/', async (req, res) => {
           /* Status */
           .status-item {
             background: #161b22;
-            padding: 10px;
-            margin-bottom: 8px;
-            border-radius: 6px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            border-radius: 8px;
             font-size: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            border: 1px solid #21262d;
+            transition: all 0.2s;
+          }
+          .status-item:hover {
+            border-color: #30363d;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
           }
           .status-label {
             color: #8b949e;
@@ -802,7 +842,7 @@ app.get('/api/chart-data', async (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.1.3 ===');
+  console.log('🎯 === Tauron Reader Addon v3.2.0 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
