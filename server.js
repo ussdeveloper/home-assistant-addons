@@ -244,104 +244,410 @@ async function fetchTauronData(force = false) {
   }
 }
 
+// Get recent logs
+function getRecentLogs(limit = 20) {
+  try {
+    const logs = fs.readFileSync('/data/buffer/runs.log.jsonl', 'utf8')
+      .trim().split('\n')
+      .filter(line => line.trim())
+      .slice(-limit)
+      .map(line => JSON.parse(line))
+      .reverse();
+    return logs;
+  } catch (err) {
+    return [];
+  }
+}
+
 // Web interface routes
 app.get('/', async (req, res) => {
   try {
     const stats = await getEnergyStats();
+    const logs = getRecentLogs(20);
     
     res.send(`
+      <!DOCTYPE html>
       <html>
       <head>
         <title>Tauron Reader</title>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
         <style>
-          body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-          .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-          .header { text-align: center; margin-bottom: 30px; }
-          .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-          .stat-card { background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid #007bff; }
-          .stat-value { font-size: 2em; font-weight: bold; color: #007bff; }
-          .stat-label { color: #666; margin-top: 5px; }
-          .controls { text-align: center; margin-bottom: 30px; }
-          .btn { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; margin: 5px; }
-          .btn:hover { background: #0056b3; }
-          .btn-secondary { background: #6c757d; }
-          .btn-secondary:hover { background: #545b62; }
-          .section { margin-bottom: 30px; }
-          .section h3 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 5px; }
-          .info { background: #e9ecef; padding: 15px; border-radius: 6px; }
-          ul { list-style: none; padding: 0; }
-          ul li { padding: 5px 0; }
-          a { color: #007bff; text-decoration: none; }
-          a:hover { text-decoration: underline; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+          }
+          
+          /* Sekcja wykresów */
+          .chart-section {
+            width: 100%;
+            background: #161b22;
+            padding: 15px;
+            border-bottom: 1px solid #30363d;
+          }
+          .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+          }
+          .chart-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #58a6ff;
+          }
+          .chart-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+          }
+          .checkbox-group {
+            display: flex;
+            gap: 15px;
+          }
+          .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            user-select: none;
+          }
+          .checkbox-group input[type="checkbox"] {
+            cursor: pointer;
+          }
+          .btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background 0.2s;
+          }
+          .btn:hover { background: #2ea043; }
+          .btn-secondary {
+            background: #1f6feb;
+          }
+          .btn-secondary:hover { background: #388bfd; }
+          
+          .chart-container {
+            position: relative;
+            height: 200px;
+            background: #0d1117;
+            border-radius: 6px;
+            padding: 10px;
+          }
+          
+          /* Sekcje dolne */
+          .content-sections {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            gap: 1px;
+            background: #30363d;
+          }
+          
+          .section {
+            flex: 1;
+            background: #0d1117;
+            overflow-y: auto;
+            padding: 15px;
+          }
+          
+          .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #58a6ff;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #21262d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          
+          /* Logi */
+          .log-entry {
+            background: #161b22;
+            border-left: 3px solid #238636;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            border-radius: 3px;
+            font-size: 11px;
+          }
+          .log-entry.error {
+            border-left-color: #da3633;
+          }
+          .log-time {
+            color: #8b949e;
+            font-size: 10px;
+          }
+          .log-message {
+            margin-top: 3px;
+            color: #c9d1d9;
+          }
+          
+          /* Status */
+          .status-item {
+            background: #161b22;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+          }
+          .status-label {
+            color: #8b949e;
+            font-size: 11px;
+            margin-bottom: 4px;
+          }
+          .status-value {
+            color: #c9d1d9;
+            font-weight: 500;
+          }
+          .status-value.success {
+            color: #3fb950;
+          }
+          .status-value.error {
+            color: #f85149;
+          }
+          .status-value.warning {
+            color: #d29922;
+          }
+          
+          .schedule-item {
+            display: inline-block;
+            background: #21262d;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #58a6ff;
+          }
+          
+          /* Scrollbar */
+          ::-webkit-scrollbar {
+            width: 8px;
+          }
+          ::-webkit-scrollbar-track {
+            background: #0d1117;
+          }
+          ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+          }
+          ::-webkit-scrollbar-thumb:hover {
+            background: #484f58;
+          }
         </style>
       </head>
       <body>
-        <div class="container">
-          <div class="header">
-            <h1>🔌 Tauron Reader Status</h1>
-            <p>Ostatnia aktualizacja: ${stats.latestUpdate}</p>
-          </div>
-          
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-value">${stats.today.consumption} kWh</div>
-              <div class="stat-label">Zużycie dziś</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">${stats.today.production} kWh</div>
-              <div class="stat-label">Produkcja dziś</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">${stats.week.consumption} kWh</div>
-              <div class="stat-label">Zużycie w tym tygodniu</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">${stats.week.production} kWh</div>
-              <div class="stat-label">Produkcja w tym tygodniu</div>
+        <!-- Sekcja wykresów -->
+        <div class="chart-section">
+          <div class="chart-header">
+            <div class="chart-title">📊 Energia - ostatnie 24h</div>
+            <div class="chart-controls">
+              <div class="checkbox-group">
+                <label>
+                  <input type="checkbox" id="showProduction" checked onchange="updateChart()">
+                  <span>� Produkcja</span>
+                </label>
+                <label>
+                  <input type="checkbox" id="showConsumption" checked onchange="updateChart()">
+                  <span>🔴 Zużycie</span>
+                </label>
+              </div>
+              <button class="btn btn-secondary" onclick="runNow()">▶️ Uruchom</button>
             </div>
           </div>
-          
-          <div class="controls">
-            <button onclick="runNow()" class="btn">▶️ Uruchom teraz</button>
-            <button onclick="checkStatus()" class="btn btn-secondary">📊 Sprawdź status</button>
+          <div class="chart-container">
+            <canvas id="energyChart"></canvas>
           </div>
-          
+        </div>
+        
+        <!-- Sekcje dolne -->
+        <div class="content-sections">
+          <!-- Logi -->
           <div class="section">
-            <h3>📅 Harmonogram</h3>
-            <div class="info">
-              <ul>${config.schedule.times.map(time => `<li>⏰ ${time}</li>`).join('')}</ul>
+            <div class="section-title">
+              <span>📝 Logi i aktualizacje</span>
+              <span style="font-size: 11px; font-weight: normal; color: #8b949e;">${logs.length} wpisów</span>
+            </div>
+            <div id="logs">
+              ${logs.map(log => `
+                <div class="log-entry ${log.status === 'error' ? 'error' : ''}">
+                  <div class="log-time">${new Date(log.time).toLocaleString('pl-PL')}</div>
+                  <div class="log-message">${log.status === 'success' ? '✅' : '❌'} ${log.message}</div>
+                </div>
+              `).join('')}
+              ${logs.length === 0 ? '<div style="color: #8b949e; font-size: 12px; text-align: center; padding: 20px;">Brak logów</div>' : ''}
             </div>
           </div>
           
+          <!-- Status i podsumowanie -->
           <div class="section">
-            <h3>📊 Historia uruchomień</h3>
-            <div class="info">
-              <a href="/api/runs" target="_blank">Zobacz szczegóły</a>
+            <div class="section-title">
+              <span>ℹ️ Status i podsumowanie</span>
+            </div>
+            
+            <div class="status-item">
+              <div class="status-label">OSTATNIA AKTUALIZACJA</div>
+              <div class="status-value">${stats.latestUpdate}</div>
+            </div>
+            
+            <div class="status-item">
+              <div class="status-label">DZISIAJ</div>
+              <div class="status-value">⚡ ${stats.today.consumption} kWh zużycie</div>
+              <div class="status-value">☀️ ${stats.today.production} kWh produkcja</div>
+            </div>
+            
+            <div class="status-item">
+              <div class="status-label">TEN TYDZIEŃ</div>
+              <div class="status-value">⚡ ${stats.week.consumption} kWh zużycie</div>
+              <div class="status-value">☀️ ${stats.week.production} kWh produkcja</div>
+            </div>
+            
+            <div class="status-item">
+              <div class="status-label">WCZORAJ</div>
+              <div class="status-value">⚡ ${stats.yesterday.consumption} kWh zużycie</div>
+              <div class="status-value">☀️ ${stats.yesterday.production} kWh produkcja</div>
+            </div>
+            
+            <div class="status-item">
+              <div class="status-label">POŁĄCZENIE TAURON</div>
+              <div class="status-value success" id="tauronStatus">🟢 Aktywne</div>
+            </div>
+            
+            <div class="status-item">
+              <div class="status-label">POŁĄCZENIE BAZA DANYCH</div>
+              <div class="status-value success" id="dbStatus">🟢 Aktywne</div>
+            </div>
+            
+            <div class="status-item">
+              <div class="status-label">ZAPLANOWANE URUCHOMIENIA</div>
+              <div class="status-value">
+                ${config.schedule.times.map(time => `<span class="schedule-item">⏰ ${time}</span>`).join('')}
+              </div>
             </div>
           </div>
         </div>
         
         <script>
+          // Chart setup
+          const ctx = document.getElementById('energyChart').getContext('2d');
+          let chart = null;
+          
+          async function updateChart() {
+            const showProduction = document.getElementById('showProduction').checked;
+            const showConsumption = document.getElementById('showConsumption').checked;
+            
+            try {
+              // Fetch real data from API
+              const response = await fetch('/api/chart-data');
+              const data = await response.json();
+              
+              if (!data.success) {
+                console.error('Failed to load chart data:', data.error);
+                return;
+              }
+              
+              const datasets = [];
+              if (showProduction) {
+                datasets.push({
+                  label: 'Produkcja (kWh)',
+                  data: data.production,
+                  borderColor: '#3fb950',
+                  backgroundColor: 'rgba(63, 185, 80, 0.1)',
+                  tension: 0.4,
+                  fill: true
+                });
+              }
+              if (showConsumption) {
+                datasets.push({
+                  label: 'Zużycie (kWh)',
+                  data: data.consumption,
+                  borderColor: '#f85149',
+                  backgroundColor: 'rgba(248, 81, 73, 0.1)',
+                  tension: 0.4,
+                  fill: true
+                });
+              }
+              
+              if (chart) chart.destroy();
+              
+              chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                  labels: data.labels,
+                  datasets: datasets
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      display: false
+                    },
+                    tooltip: {
+                      mode: 'index',
+                      intersect: false
+                    }
+                  },
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      grid: {
+                        color: '#21262d'
+                      },
+                      ticks: {
+                        color: '#8b949e',
+                        font: { size: 10 },
+                        callback: function(value) {
+                          return value + ' kWh';
+                        }
+                      }
+                    },
+                    x: {
+                      grid: {
+                        color: '#21262d'
+                      },
+                      ticks: {
+                        color: '#8b949e',
+                        font: { size: 10 }
+                      }
+                    }
+                  }
+                }
+              });
+            } catch (err) {
+              console.error('Chart update error:', err);
+            }
+          }
+          
           function runNow() {
-            if (confirm('Czy na pewno chcesz uruchomić pobieranie danych?')) {
+            if (confirm('Uruchomić pobieranie danych teraz?')) {
               fetch('/run-now').then(() => {
-                alert('Rozpoczęto pobieranie danych! Sprawdź logi za kilka sekund.');
+                setTimeout(() => location.reload(), 2000);
               });
             }
           }
           
-          function checkStatus() {
-            fetch('/api/status')
-              .then(r => r.json())
-              .then(data => {
-                if (data.success) {
-                  alert('Status:\\n\\n' + data.status);
-                } else {
-                  alert('Błąd: ' + data.error);
-                }
-              });
-          }
+          // Initialize chart
+          updateChart();
+          
+          // Auto-refresh every 60 seconds
+          setInterval(() => {
+            updateChart(); // Update chart only, not full page reload
+          }, 60000);
         </script>
       </body>
       </html>
@@ -390,9 +696,53 @@ app.get('/api/runs', (req, res) => {
   }
 });
 
+// API endpoint for chart data (last 24 hours)
+app.get('/api/chart-data', async (req, res) => {
+  try {
+    const db = await mysql.createConnection({
+      host: config.database.host,
+      port: config.database.port,
+      user: config.database.user,
+      password: config.database.password,
+      database: config.database.database
+    });
+
+    // Get hourly data for last 24 hours
+    const [rows] = await db.execute(`
+      SELECT 
+        DATE_FORMAT(ts_real, '%Y-%m-%d %H:00:00') as hour,
+        SUM(ec) as consumption,
+        SUM(oze) as production
+      FROM ${config.database.table}
+      WHERE ts_real >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+      GROUP BY hour
+      ORDER BY hour ASC
+    `);
+
+    await db.end();
+
+    const labels = rows.map(r => {
+      const date = new Date(r.hour);
+      return date.getHours() + 'h';
+    });
+    const consumption = rows.map(r => parseFloat((r.consumption || 0) / 1000).toFixed(2)); // Convert to kWh
+    const production = rows.map(r => parseFloat((r.production || 0) / 1000).toFixed(2));
+
+    res.json({
+      success: true,
+      labels,
+      consumption,
+      production
+    });
+  } catch (err) {
+    console.log('❌ Chart data error:', err.message);
+    res.json({ success: false, error: err.message });
+  }
+});
+
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.0.1 ===');
+  console.log('🎯 === Tauron Reader Addon v3.1.0 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());

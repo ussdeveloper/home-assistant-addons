@@ -1,6 +1,27 @@
 # Changelog
 
-## v3.0.0 - Architecture Refactoring (2025-10-22)
+# Changelog
+
+## [3.1.0] - 2025-10-22
+
+### Added
+- **New Modern UI** with dark theme matching Home Assistant design
+- **Interactive Chart** showing energy production and consumption (last 24 hours)
+- **Real-time data visualization** using Chart.js
+- **Three-section layout**:
+  - Top: Energy chart with toggleable production/consumption
+  - Bottom Left: Logs and data updates with auto-scroll
+  - Bottom Right: Status summary with connection status and scheduled runs
+- **Responsive design** that adapts to webview size
+- **Auto-refresh** functionality (chart updates every 60 seconds)
+- **API endpoint** `/api/chart-data` for fetching hourly energy data
+
+### Changed
+- Updated web interface from simple stats page to professional dashboard
+- Improved visual hierarchy with better typography and spacing
+- Enhanced user experience with checkboxes to toggle chart data series
+
+## [3.0.1] - 2025-10-22
 
 ### 🎯 Główne zmiany
 
