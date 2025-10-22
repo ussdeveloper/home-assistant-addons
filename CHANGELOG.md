@@ -2,6 +2,10 @@
 
 # Changelog
 
+## [3.3.2] - 2025-10-22
+### Fixed
+- Syntax error fix deployment (same as 3.3.1, version bump for Home Assistant update)
+
 ## [3.3.1] - 2025-10-22
 ### Fixed
 - Fixed syntax error with nested template literals in JavaScript code
