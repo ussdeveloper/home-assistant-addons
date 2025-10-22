@@ -512,8 +512,8 @@
             var paletteIndex = yearIndex % yearColorPalettes.length;
             var colors = yearColorPalettes[paletteIndex];
 
-            // Calculate opacity gradient within the year (0.8 for lightly transparent)
-            var baseOpacity = 0.8;
+            // Calculate opacity gradient within the year (0.3 to 0.6 for better layer visibility)
+            var baseOpacity = 0.3;
 
             // Always show production (with checkbox control)
             if (showProduction) {

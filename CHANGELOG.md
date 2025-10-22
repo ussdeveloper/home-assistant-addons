@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.9.1] - 2025-10-22
+### Fixed
+- **Chart transparency issue**: Fixed overlapping chart data by reducing opacity from 0.8-1.1 to 0.3-0.6 range
+- **Multiple year visibility**: Charts with multiple selected years now display properly without data being obscured
+
+### Technical Details
+- **Opacity adjustment**: Changed baseOpacity from 0.8 to 0.3 to prevent overlapping filled areas
+- **Layer visibility**: Multiple datasets (production/consumption across years) now remain visible when overlaid
+
 ## [3.9.0] - 2025-10-22
 ### Changed
 - **Accurate date labels**: Changed "DZISIAJ" to "WCZORAJ" and "WCZORAJ" to "PRZEDWCZORAJ" to correctly reflect data age
