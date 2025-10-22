@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.4.3] - 2025-10-22
+### Fixed
+- **Home Assistant ingress API calls**: Fixed API endpoint URLs for ingress mode by using relative paths instead of full ingress paths
+- **Year selection visibility**: Year checkboxes now load correctly in Home Assistant sidebar iframe
+
+### Technical Details
+- **Ingress path detection**: Added logic to detect Home Assistant ingress mode and use appropriate API URL construction
+- **API call routing**: In ingress mode, API calls now use relative URLs (`/api/...`) instead of full ingress paths
+
 ## [3.4.2] - 2025-10-22
 ### Fixed
 - **Dynamic Tauron connection status**: Status now shows "🔴 Nieaktywne" if last connection failed, only "🟢 Aktywne" when connection succeeds

@@ -373,7 +373,15 @@
     }
 
     // Ingress path support for Home Assistant
-    var basePath = window.location.pathname.replace(/\/$/, '');
+    var basePath = '';
+    var isIngress = window.location.pathname.includes('/api/hassio_ingress/');
+    if (isIngress) {
+      // In ingress mode, API calls should be relative to current location
+      basePath = '';
+    } else {
+      // In direct access mode, use the current path
+      basePath = window.location.pathname.replace(/\/$/, '');
+    }
 
     // Chart setup
     var ctx = document.getElementById('energyChart').getContext('2d');
