@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.4.4] - 2025-10-22
+### Fixed
+- **Home Assistant ingress API routing**: Corrected basePath logic for ingress mode to use full ingress path instead of relative paths
+- **API calls in iframe**: Fixed 404 errors when accessing API endpoints through Home Assistant sidebar
+
+### Technical Details
+- **Ingress path handling**: In ingress mode, basePath now correctly uses the full ingress path for API calls
+- **URL construction**: API calls now properly route to addon endpoints in iframe environment
+
 ## [3.4.3] - 2025-10-22
 ### Fixed
 - **Home Assistant ingress API calls**: Fixed API endpoint URLs for ingress mode by using relative paths instead of full ingress paths

@@ -376,8 +376,8 @@
     var basePath = '';
     var isIngress = window.location.pathname.includes('/api/hassio_ingress/');
     if (isIngress) {
-      // In ingress mode, API calls should be relative to current location
-      basePath = '';
+      // In ingress mode, API calls should be made to the current ingress path
+      basePath = window.location.pathname.replace(/\/$/, '');
     } else {
       // In direct access mode, use the current path
       basePath = window.location.pathname.replace(/\/$/, '');
