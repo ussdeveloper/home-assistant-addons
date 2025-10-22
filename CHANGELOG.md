@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.4.2] - 2025-10-22
+### Fixed
+- **Dynamic Tauron connection status**: Status now shows "🔴 Nieaktywne" if last connection failed, only "🟢 Aktywne" when connection succeeds
+- **Button label updated**: Changed "▶️ Uruchom" to "🔄 Refresh Tauron" for clarity
+- **Confirmation message**: Updated to "Rozpocząć odświeżanie danych Tauron?" for the refresh action
+
+### Enhanced
+- **Connection status logic**: Tauron status is now determined by the last log entry status
+- **UI feedback**: More accurate representation of connection state based on actual connection attempts
+
 ## [3.4.1] - 2025-10-22 🏆 **MILESTONE RELEASE**
 ### Fixed
 - **Missing index.html in Docker container**: Added COPY index.html ./ to Dockerfile to fix "ENOENT: no such file or directory" error when loading the web interface

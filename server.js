@@ -374,6 +374,12 @@ app.get('/', async (req, res) => {
     const stats = await getEnergyStats();
     const logs = getRecentLogs(20);
     
+    // Determine tauron connection status based on last log
+    const lastLog = logs.length > 0 ? logs[0] : null;
+    const tauronStatus = lastLog && lastLog.status === 'success' ? 
+      '<div class="status-value success">🟢 Aktywne</div>' : 
+      '<div class="status-value error">🔴 Nieaktywne</div>';
+    
     // Read HTML template
     let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
     
@@ -398,6 +404,7 @@ app.get('/', async (req, res) => {
     html = html.replace('{{WEEK_PRODUCTION}}', stats.week.production);
     html = html.replace('{{YESTERDAY_CONSUMPTION}}', stats.yesterday.consumption);
     html = html.replace('{{YESTERDAY_PRODUCTION}}', stats.yesterday.production);
+    html = html.replace('{{TAURON_STATUS}}', tauronStatus);
     
     const scheduledTimes = config.schedule.times.map(time => `<span class="schedule-item">⏰ ${time}</span>`).join('');
     html = html.replace('{{SCHEDULED_TIMES}}', scheduledTimes);
@@ -640,7 +647,7 @@ app.get('/api/chart-data', async (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.4.1 ===');
+  console.log('🎯 === Tauron Reader Addon v3.4.2 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());

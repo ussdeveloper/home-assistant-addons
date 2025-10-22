@@ -292,7 +292,7 @@
             <span>🔴 Zużycie</span>
           </label>
         </div>
-        <button class="btn btn-secondary" onclick="runNow()">▶️ Uruchom</button>
+        <button class="btn btn-secondary" onclick="runNow()">🔄 Refresh Tauron</button>
       </div>
     </div>
     <div class="chart-container">
@@ -346,7 +346,7 @@
 
       <div class="status-item">
         <div class="status-label">POŁĄCZENIE TAURON</div>
-        <div class="status-value success" id="tauronStatus">🟢 Aktywne</div>
+        {{TAURON_STATUS}}
       </div>
 
       <div class="status-item">
@@ -674,7 +674,7 @@
     }
 
     function runNow() {
-      if (confirm('Uruchomić pobieranie danych teraz?')) {
+      if (confirm('Rozpocząć odświeżanie danych Tauron?')) {
         fetch(basePath + '/run-now').then(function() {
           setTimeout(function() { location.reload(); }, 2000);
         });
