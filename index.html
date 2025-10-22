@@ -274,11 +274,11 @@
   <div class="chart-section">
     <div class="chart-top-bar">
       <div style="display: flex; gap: 15px; align-items: center;">
-        <div class="chart-title">📊 Produkcja energii</div>
-        <div class="chart-tabs">
-          <div class="chart-tab active" onclick="switchChartType('monthly', event)">Miesięczna</div>
-          <div class="chart-tab" onclick="switchChartType('daily', event)">Ó24h</div>
-          <div class="chart-tab" onclick="switchChartType('yearly', event)">Ód roku</div>
+        <div class="chart-title">📊 Produkcja i zużycie energii - 12 miesięcy</div>
+        <div class="year-selector">
+          <div id="yearCheckboxes" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <!-- Year checkboxes will be populated by JavaScript -->
+          </div>
         </div>
       </div>
       <div class="chart-menu">
@@ -286,6 +286,10 @@
           <label>
             <input type="checkbox" id="showProduction" checked onchange="updateChart()">
             <span>🟢 Produkcja</span>
+          </label>
+          <label>
+            <input type="checkbox" id="showConsumption" checked onchange="updateChart()">
+            <span>🔴 Zużycie</span>
           </label>
         </div>
         <button class="btn btn-secondary" onclick="runNow()">▶️ Uruchom</button>
@@ -374,7 +378,9 @@
     // Chart setup
     var ctx = document.getElementById('energyChart').getContext('2d');
     var chart = null;
-    var currentChartType = 'monthly'; // default
+    var currentChartType = 'yearly'; // default - 12 months
+    var availableYears = [];
+    var selectedYear = new Date().getFullYear();
 
     function switchChartType(type, event) {
       currentChartType = type;
@@ -395,6 +401,9 @@
       if (type === 'monthly') {
         titleEl.textContent = '📊 Produkcja energii';
         optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span>🟢 Produkcja</span></label>';
+      } else if (type === '2years') {
+        titleEl.textContent = '📊 Produkcja i zużycie - 2 lata';
+        optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span>🟢 Produkcja</span></label><label><input type="checkbox" id="showConsumption" checked onchange="updateChart()"><span>🔴 Zużycie</span></label>';
       } else if (type === 'yearly') {
         titleEl.textContent = '📊 Od roku do teraz';
         optionsEl.innerHTML = '<label><input type="checkbox" id="showProduction" checked onchange="updateChart()"><span>🟢 Produkcja</span></label>';
@@ -409,80 +418,105 @@
     function updateChart() {
       var showProductionEl = document.getElementById('showProduction');
       var showConsumptionEl = document.getElementById('showConsumption');
-      var showProduction = showProductionEl ? showProductionEl.checked : false;
-      var showConsumption = showConsumptionEl ? showConsumptionEl.checked : false;
+      var showProduction = showProductionEl ? showProductionEl.checked : true;
+      var showConsumption = showConsumptionEl ? showConsumptionEl.checked : true;
 
-      // Select API endpoint based on chart type
-      var apiUrl;
-      if (currentChartType === 'monthly') {
-        apiUrl = basePath + '/api/chart-data-monthly';
-      } else if (currentChartType === 'yearly') {
-        apiUrl = basePath + '/api/chart-data-yearly';
-      } else {
-        apiUrl = basePath + '/api/chart-data';
+      // Get selected years
+      var selectedYears = [];
+      availableYears.forEach(function(year) {
+        var checkbox = document.getElementById('year_' + year);
+        if (checkbox && checkbox.checked) {
+          selectedYears.push(year);
+        }
+      });
+
+      // If no years selected, default to current year
+      if (selectedYears.length === 0) {
+        selectedYears = [new Date().getFullYear()];
+        // Check the current year checkbox
+        var currentYearCheckbox = document.getElementById('year_' + selectedYears[0]);
+        if (currentYearCheckbox) {
+          currentYearCheckbox.checked = true;
+        }
       }
 
-      console.log('Fetching chart data from:', apiUrl);
+      console.log('Selected years:', selectedYears);
 
-      fetch(apiUrl)
-        .then(function(response) { return response.json(); })
-        .then(function(data) {
-          console.log('Chart data received:', data);
+      // Fetch data for all selected years
+      var promises = selectedYears.map(function(year) {
+        return fetch(basePath + '/api/chart-data-yearly?year=' + year)
+          .then(function(response) { return response.json(); })
+          .then(function(data) {
+            if (data.success) {
+              data.year = year;
+              return data;
+            } else {
+              console.error('Failed to load data for year', year, ':', data.error);
+              return null;
+            }
+          });
+      });
 
-          if (!data.success) {
-            console.error('Failed to load chart data:', data.error);
+      Promise.all(promises)
+        .then(function(yearDataArray) {
+          // Filter out failed requests
+          yearDataArray = yearDataArray.filter(function(data) { return data !== null; });
+
+          if (yearDataArray.length === 0) {
+            console.warn('No data available for selected years');
             document.querySelector('.chart-container').innerHTML =
-              '<div style="color: #f85149; text-align: center; padding: 40px;">❌ Błąd ładowania danych: ' + data.error + '</div>';
-            return;
-          }
-
-          if (!data.labels || data.labels.length === 0) {
-            console.warn('No data available for chart');
-            document.querySelector('.chart-container').innerHTML =
-              '<div style="color: #8b949e; text-align: center; padding: 40px;">📊 Brak danych</div>';
+              '<div style="color: #8b949e; text-align: center; padding: 40px;">📊 Brak danych dla wybranych lat</div>';
             return;
           }
 
           var datasets = [];
+          var dataLength = 12; // Always 12 months
 
-          // For monthly/yearly - only production
-          if (currentChartType === 'monthly' || currentChartType === 'yearly') {
+          // Create opacity gradient - newer years have higher opacity
+          var yearCount = yearDataArray.length;
+
+          yearDataArray.forEach(function(yearData, yearIndex) {
+            // Calculate opacity: older years (0.1) to newer years (0.8)
+            var baseOpacity = 0.1 + (yearIndex / yearCount) * 0.7;
+
+            // Always show production (with checkbox control)
             if (showProduction) {
               datasets.push({
-                label: 'Produkcja (kWh)',
-                data: data.production,
+                label: 'Produkcja ' + yearData.year + ' (kWh)',
+                data: yearData.production,
                 borderColor: '#3fb950',
-                backgroundColor: 'rgba(63, 185, 80, 0.2)',
+                backgroundColor: yearData.production.map(function(_, i) {
+                  return 'rgba(63, 185, 80, ' + (baseOpacity + (i / dataLength) * 0.3) + ')';
+                }),
                 tension: 0.4,
                 fill: true,
-                borderWidth: 3
+                borderWidth: 2,
+                pointBackgroundColor: '#3fb950',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 1,
+                pointRadius: 3
               });
             }
-          } else {
-            // For daily - production and consumption
-            if (showProduction) {
-              datasets.push({
-                label: 'Produkcja (kWh)',
-                data: data.production,
-                borderColor: '#3fb950',
-                backgroundColor: 'rgba(63, 185, 80, 0.1)',
-                tension: 0.4,
-                fill: true,
-                borderWidth: 2
-              });
-            }
+
+            // Always show consumption (with checkbox control)
             if (showConsumption) {
               datasets.push({
-                label: 'Zużycie (kWh)',
-                data: data.consumption,
+                label: 'Zużycie ' + yearData.year + ' (kWh)',
+                data: yearData.consumption,
                 borderColor: '#f85149',
-                backgroundColor: 'rgba(248, 81, 73, 0.1)',
+                backgroundColor: yearData.consumption.map(function(_, i) {
+                  return 'rgba(248, 81, 73, ' + (baseOpacity + (i / dataLength) * 0.3) + ')';
+                }),
                 tension: 0.4,
                 fill: true,
-                borderWidth: 2
+                borderWidth: 2,
+                pointBackgroundColor: '#f85149',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 1,
+                pointRadius: 3
               });
             }
-          }
+          });
 
           if (chart) chart.destroy();
 
@@ -505,7 +539,7 @@
             chart = new Chart(newCtx, {
               type: 'line',
               data: {
-                labels: data.labels,
+                labels: ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'],
                 datasets: datasets
               },
               options: {
@@ -513,7 +547,14 @@
                 maintainAspectRatio: false,
                 plugins: {
                   legend: {
-                    display: false
+                    display: true,
+                    position: 'top',
+                    labels: {
+                      color: '#c9d1d9',
+                      font: { size: 10 },
+                      usePointStyle: true,
+                      padding: 10
+                    }
                   },
                   tooltip: {
                     mode: 'index',
@@ -553,9 +594,83 @@
             return;
           }
         })
-      .catch(function(err) {
-        console.error('Chart update error:', err);
-      });
+        .catch(function(err) {
+          console.error('Chart update error:', err);
+        });
+    }
+
+    function loadAvailableYears() {
+      fetch(basePath + '/api/available-years')
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          if (data.success && data.years && data.years.length > 0) {
+            availableYears = data.years.sort(function(a, b) { return b - a; }); // Sort descending (newest first)
+
+            var container = document.getElementById('yearCheckboxes');
+            if (!container) {
+              console.error('Year checkboxes container not found');
+              return;
+            }
+
+            container.innerHTML = ''; // Clear existing content
+
+            // Limit to maximum 5 years for UI clarity
+            var yearsToShow = availableYears.slice(0, 5);
+
+            yearsToShow.forEach(function(year, index) {
+              var checkboxDiv = document.createElement('div');
+              checkboxDiv.className = 'year-checkbox-item';
+              checkboxDiv.style.cssText = 'display: inline-block; margin: 0 8px 4px 0;';
+
+              var checkbox = document.createElement('input');
+              checkbox.type = 'checkbox';
+              checkbox.id = 'year_' + year;
+              checkbox.value = year;
+              checkbox.style.cssText = 'margin-right: 4px; cursor: pointer;';
+
+              // Default: check the most recent year
+              if (index === 0) {
+                checkbox.checked = true;
+              }
+
+              var label = document.createElement('label');
+              label.htmlFor = 'year_' + year;
+              label.textContent = year;
+              label.style.cssText = 'color: #c9d1d9; font-size: 12px; cursor: pointer; user-select: none;';
+
+              // Add hover effect
+              checkboxDiv.onmouseover = function() {
+                this.style.backgroundColor = '#21262d';
+              };
+              checkboxDiv.onmouseout = function() {
+                this.style.backgroundColor = 'transparent';
+              };
+
+              // Add change event listener
+              checkbox.onchange = function() {
+                updateChart();
+              };
+
+              checkboxDiv.appendChild(checkbox);
+              checkboxDiv.appendChild(label);
+              container.appendChild(checkboxDiv);
+            });
+
+            console.log('Available years loaded:', availableYears);
+            updateChart(); // Initial chart load
+          } else {
+            console.warn('No years available or failed to load years:', data);
+            // Fallback to current year
+            availableYears = [new Date().getFullYear()];
+            updateChart();
+          }
+        })
+        .catch(function(err) {
+          console.error('Failed to load available years:', err);
+          // Fallback to current year
+          availableYears = [new Date().getFullYear()];
+          updateChart();
+        });
     }
 
     function runNow() {
@@ -566,7 +681,8 @@
       }
     }
 
-    // Initialize chart
+    // Initialize
+    loadAvailableYears();
     updateChart();
 
     // Auto-refresh every 60 seconds
