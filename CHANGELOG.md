@@ -2,6 +2,13 @@
 
 # Changelog
 
+## [3.3.7] - 2025-10-22
+### Fixed
+- Replaced .forEach() with for loop for better compatibility
+- Removed all remaining arrow functions from browser code
+- Fixed runNow() function not being defined due to syntax errors
+- Complete ES5 compatibility in client-side JavaScript
+
 ## [3.3.6] - 2025-10-22
 ### Fixed
 - Replaced async/await with Promise .then() for better browser compatibility

@@ -679,7 +679,10 @@ app.get('/', async (req, res) => {
             currentChartType = type;
             
             // Update active tab
-            document.querySelectorAll('.chart-tab').forEach(function(tab) { tab.classList.remove('active'); });
+            var tabs = document.querySelectorAll('.chart-tab');
+            for (var i = 0; i < tabs.length; i++) {
+              tabs[i].classList.remove('active');
+            }
             event.target.classList.add('active');
             
             // Update title and options
@@ -840,8 +843,8 @@ app.get('/', async (req, res) => {
           
           function runNow() {
             if (confirm('Uruchomić pobieranie danych teraz?')) {
-              fetch(basePath + '/run-now').then(() => {
-                setTimeout(() => location.reload(), 2000);
+              fetch(basePath + '/run-now').then(function() {
+                setTimeout(function() { location.reload(); }, 2000);
               });
             }
           }
@@ -850,7 +853,7 @@ app.get('/', async (req, res) => {
           updateChart();
           
           // Auto-refresh every 60 seconds
-          setInterval(() => {
+          setInterval(function() {
             updateChart(); // Update chart only, not full page reload
           }, 60000);
         </script>
