@@ -131,14 +131,58 @@ async function callTauronReader(args = []) {
   });
 }
 
-// Test database connection using tauron-reader
+// Test database connection and create table if needed
 async function testDB() {
   try {
+    // First test basic connection with tauron-reader
     await callTauronReader(['-test-db']);
     console.log('✅ Database connection test passed');
-    return true;
+
+    // Now check if table exists and create it if needed
+    const db = await connectDB();
+    try {
+      const tableName = config.database.table;
+
+      // Check if table exists
+      const [tables] = await db.execute(`
+        SELECT TABLE_NAME
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?
+      `, [config.database.name, tableName]);
+
+      if (tables.length === 0) {
+        console.log(`📋 Table '${tableName}' does not exist, creating it...`);
+
+        // Create the table with the provided schema
+        await db.execute(`
+          CREATE TABLE \`${tableName}\` (
+            \`Id\` int(11) NOT NULL AUTO_INCREMENT,
+            \`ts\` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+            \`ts_real\` datetime DEFAULT NULL,
+            \`consumption\` double(11,3) unsigned DEFAULT NULL,
+            \`production\` double(11,3) unsigned DEFAULT NULL,
+            \`temperatire_air\` double(11,3) DEFAULT NULL,
+            \`temperature_comfort\` double(11,3) DEFAULT NULL,
+            \`cloudiness\` double(11,3) unsigned DEFAULT NULL,
+            \`windspeed\` double(11,3) DEFAULT NULL,
+            \`windchill\` double(11,3) DEFAULT NULL,
+            \`ab\` tinyint(1) unsigned DEFAULT 1,
+            PRIMARY KEY (\`Id\`),
+            UNIQUE KEY \`read_unique\` (\`ts_real\`)
+          ) ENGINE=InnoDB AUTO_INCREMENT=665412 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci ROW_FORMAT=DYNAMIC
+        `);
+
+        console.log(`✅ Table '${tableName}' created successfully`);
+      } else {
+        console.log(`✅ Table '${tableName}' already exists`);
+      }
+
+      return true;
+    } finally {
+      await db.end();
+    }
   } catch (err) {
-    console.log('❌ Database connection test failed:', err.message);
+    console.log('❌ Database test failed:', err.message);
     return false;
   }
 }
@@ -505,7 +549,7 @@ app.get('/api/chart-data', async (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.3.12 ===');
+  console.log('🎯 === Tauron Reader Addon v3.3.13 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());

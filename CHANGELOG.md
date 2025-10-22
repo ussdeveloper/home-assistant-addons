@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.3.13] - 2025-10-22
+### Added
+- Automatic database table creation if table doesn't exist
+- Uses table name from HA config for table creation
+- Full table schema with all required columns and indexes
+
 ## [3.3.12] - 2025-10-22
 ### Refactored
 - Extracted HTML template from server.js into separate index.html file for better code organization
