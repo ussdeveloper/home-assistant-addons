@@ -2,6 +2,11 @@
 
 # Changelog
 
+## [3.3.8] - 2025-10-22
+### Fixed
+- Corrected repository URL in config.yaml (was pointing to wrong repo)
+- Fixed addon not updating from GitHub due to incorrect URL
+
 ## [3.3.7] - 2025-10-22
 ### Fixed
 - Replaced .forEach() with for loop for better compatibility
