@@ -2,6 +2,24 @@
 
 # Changelog
 
+## [3.3.0] - 2025-10-22
+
+### Added
+- **Chart Tabs** - Three chart types with tab navigation:
+  - **Miesięczna** (default) - Production for current month across years
+  - **Ó24h** - Hourly production and consumption for last 24 hours
+  - **Ód roku** - Monthly production totals for current year
+- **New API Endpoints**:
+  - `/api/chart-data-monthly` - Current month production across all years
+  - `/api/chart-data-yearly` - Monthly totals for current year
+- **Dynamic UI** - Chart title and checkboxes update based on selected tab
+- **Better Defaults** - Shows monthly production comparison on load
+
+### Enhanced
+- **Responsive Charts** - Proper canvas recreation and resize handling
+- **Tab Styling** - Active tab indication with colors and hover effects
+- **Chart Types** - Bar charts for yearly comparison, line for others
+
 ## [3.2.1] - 2025-10-22
 
 ### Fixed

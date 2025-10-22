@@ -345,6 +345,29 @@ app.get('/', async (req, res) => {
             letter-spacing: 0.3px;
             text-shadow: 0 1px 2px rgba(0,0,0,0.5);
           }
+          .chart-tabs {
+            display: flex;
+            gap: 5px;
+          }
+          .chart-tab {
+            padding: 5px 12px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #8b949e;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+          }
+          .chart-tab:hover {
+            background: #30363d;
+            color: #c9d1d9;
+          }
+          .chart-tab.active {
+            background: #1f6feb;
+            color: white;
+            border-color: #1f6feb;
+          }
           .chart-menu {
             display: flex;
             gap: 10px;
@@ -551,16 +574,19 @@ app.get('/', async (req, res) => {
         <!-- Sekcja wykresów - Grafana style -->
         <div class="chart-section">
           <div class="chart-top-bar">
-            <div class="chart-title">📊 Energia - ostatnie 24h</div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+              <div class="chart-title">📊 Produkcja energii</div>
+              <div class="chart-tabs">
+                <div class="chart-tab active" onclick="switchChartType('monthly')">Miesięczna</div>
+                <div class="chart-tab" onclick="switchChartType('daily')">Ó24h</div>
+                <div class="chart-tab" onclick="switchChartType('yearly')">Ód roku</div>
+              </div>
+            </div>
             <div class="chart-menu">
-              <div class="checkbox-group">
+              <div class="checkbox-group" id="chartOptions">
                 <label>
                   <input type="checkbox" id="showProduction" checked onchange="updateChart()">
-                  <span>🟢 Produkcja</span>
-                </label>
-                <label>
-                  <input type="checkbox" id="showConsumption" checked onchange="updateChart()">
-                  <span>🔴 Zużycie</span>
+                  <span>� Produkcja</span>
                 </label>
               </div>
               <button class="btn btn-secondary" onclick="runNow()">▶️ Uruchom</button>
@@ -647,22 +673,75 @@ app.get('/', async (req, res) => {
           // Chart setup
           const ctx = document.getElementById('energyChart').getContext('2d');
           let chart = null;
+          let currentChartType = 'monthly'; // default
+          
+          function switchChartType(type) {
+            currentChartType = type;
+            
+            // Update active tab
+            document.querySelectorAll('.chart-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update title and options
+            const titleEl = document.querySelector('.chart-title');
+            const optionsEl = document.getElementById('chartOptions');
+            
+            if (type === 'monthly') {
+              titleEl.textContent = '📊 Produkcja energii';
+              optionsEl.innerHTML = `
+                <label>
+                  <input type="checkbox" id="showProduction" checked onchange="updateChart()">
+                  <span>🟢 Produkcja</span>
+                </label>
+              `;
+            } else if (type === 'yearly') {
+              titleEl.textContent = '📊 Od roku do teraz';
+              optionsEl.innerHTML = `
+                <label>
+                  <input type="checkbox" id="showProduction" checked onchange="updateChart()">
+                  <span>🟢 Produkcja</span>
+                </label>
+              `;
+            } else {
+              titleEl.textContent = '📊 Ostatnie 24h';
+              optionsEl.innerHTML = `
+                <label>
+                  <input type="checkbox" id="showProduction" checked onchange="updateChart()">
+                  <span>🟢 Produkcja</span>
+                </label>
+                <label>
+                  <input type="checkbox" id="showConsumption" checked onchange="updateChart()">
+                  <span>🔴 Zużycie</span>
+                </label>
+              `;
+            }
+            
+            updateChart();
+          }
           
           async function updateChart() {
-            const showProduction = document.getElementById('showProduction').checked;
-            const showConsumption = document.getElementById('showConsumption').checked;
+            const showProduction = document.getElementById('showProduction')?.checked || false;
+            const showConsumption = document.getElementById('showConsumption')?.checked || false;
             
             try {
-              // Fetch real data from API (use relative path for ingress)
-              console.log('Fetching chart data from:', basePath + '/api/chart-data');
-              const response = await fetch(basePath + '/api/chart-data');
+              // Select API endpoint based on chart type
+              let apiUrl;
+              if (currentChartType === 'monthly') {
+                apiUrl = basePath + '/api/chart-data-monthly';
+              } else if (currentChartType === 'yearly') {
+                apiUrl = basePath + '/api/chart-data-yearly';
+              } else {
+                apiUrl = basePath + '/api/chart-data';
+              }
+              
+              console.log('Fetching chart data from:', apiUrl);
+              const response = await fetch(apiUrl);
               const data = await response.json();
               
               console.log('Chart data received:', data);
               
               if (!data.success) {
                 console.error('Failed to load chart data:', data.error);
-                // Show error in chart area
                 document.querySelector('.chart-container').innerHTML = 
                   '<div style="color: #f85149; text-align: center; padding: 40px;">❌ Błąd ładowania danych: ' + data.error + '</div>';
                 return;
@@ -671,32 +750,49 @@ app.get('/', async (req, res) => {
               if (!data.labels || data.labels.length === 0) {
                 console.warn('No data available for chart');
                 document.querySelector('.chart-container').innerHTML = 
-                  '<div style="color: #8b949e; text-align: center; padding: 40px;">📊 Brak danych w ostatnich 24h</div>';
+                  '<div style="color: #8b949e; text-align: center; padding: 40px;">📊 Brak danych</div>';
                 return;
               }
               
               const datasets = [];
-              if (showProduction) {
-                datasets.push({
-                  label: 'Produkcja (kWh)',
-                  data: data.production,
-                  borderColor: '#3fb950',
-                  backgroundColor: 'rgba(63, 185, 80, 0.1)',
-                  tension: 0.4,
-                  fill: true,
-                  borderWidth: 2
-                });
-              }
-              if (showConsumption) {
-                datasets.push({
-                  label: 'Zużycie (kWh)',
-                  data: data.consumption,
-                  borderColor: '#f85149',
-                  backgroundColor: 'rgba(248, 81, 73, 0.1)',
-                  tension: 0.4,
-                  fill: true,
-                  borderWidth: 2
-                });
+              
+              // For monthly/yearly - only production
+              if (currentChartType === 'monthly' || currentChartType === 'yearly') {
+                if (showProduction) {
+                  datasets.push({
+                    label: 'Produkcja (kWh)',
+                    data: data.production,
+                    borderColor: '#3fb950',
+                    backgroundColor: 'rgba(63, 185, 80, 0.2)',
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 3
+                  });
+                }
+              } else {
+                // For daily - production and consumption
+                if (showProduction) {
+                  datasets.push({
+                    label: 'Produkcja (kWh)',
+                    data: data.production,
+                    borderColor: '#3fb950',
+                    backgroundColor: 'rgba(63, 185, 80, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 2
+                  });
+                }
+                if (showConsumption) {
+                  datasets.push({
+                    label: 'Zużycie (kWh)',
+                    data: data.consumption,
+                    borderColor: '#f85149',
+                    backgroundColor: 'rgba(248, 81, 73, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 2
+                  });
+                }
               }
               
               if (chart) chart.destroy();
@@ -821,6 +917,89 @@ app.get('/api/runs', (req, res) => {
   }
 });
 
+// API endpoint for monthly production data (current month across years)
+app.get('/api/chart-data-monthly', async (req, res) => {
+  try {
+    const db = await mysql.createConnection({
+      host: config.database.host,
+      port: config.database.port,
+      user: config.database.user,
+      password: config.database.password,
+      database: config.database.name
+    });
+
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+
+    // Get total production for current month across all available years
+    const [rows] = await db.execute(`
+      SELECT 
+        YEAR(ts_real) as year,
+        SUM(oze) / 1000 as total_production
+      FROM ${config.database.table}
+      WHERE MONTH(ts_real) = ?
+      GROUP BY year
+      ORDER BY year ASC
+    `, [currentMonth]);
+
+    await db.end();
+
+    const labels = rows.map(r => r.year.toString());
+    const production = rows.map(r => parseFloat(r.total_production || 0).toFixed(2));
+
+    res.json({
+      success: true,
+      labels,
+      production,
+      month: new Date().toLocaleString('pl-PL', { month: 'long' })
+    });
+  } catch (err) {
+    console.log('❌ Chart monthly data error:', err.message);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// API endpoint for yearly comparison
+app.get('/api/chart-data-yearly', async (req, res) => {
+  try {
+    const db = await mysql.createConnection({
+      host: config.database.host,
+      port: config.database.port,
+      user: config.database.user,
+      password: config.database.password,
+      database: config.database.name
+    });
+
+    const currentYear = new Date().getFullYear();
+
+    // Get monthly totals for current year
+    const [rows] = await db.execute(`
+      SELECT 
+        MONTH(ts_real) as month,
+        SUM(oze) / 1000 as total_production
+      FROM ${config.database.table}
+      WHERE YEAR(ts_real) = ?
+      GROUP BY month
+      ORDER BY month ASC
+    `, [currentYear]);
+
+    await db.end();
+
+    const monthNames = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
+    const labels = rows.map(r => monthNames[r.month - 1]);
+    const production = rows.map(r => parseFloat(r.total_production || 0).toFixed(2));
+
+    res.json({
+      success: true,
+      labels,
+      production,
+      year: currentYear
+    });
+  } catch (err) {
+    console.log('❌ Chart yearly data error:', err.message);
+    res.json({ success: false, error: err.message });
+  }
+});
+
 // API endpoint for chart data (last 24 hours)
 app.get('/api/chart-data', async (req, res) => {
   try {
@@ -867,7 +1046,7 @@ app.get('/api/chart-data', async (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.2.1 ===');
+  console.log('🎯 === Tauron Reader Addon v3.3.0 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
