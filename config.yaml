@@ -2,7 +2,7 @@ name: Tauron Reader
 version: "3.3.7"
 slug: tauron_reader
 description: Addon to fetch energy data from Tauron eLicznik and insert into MySQL database
-url: "https://github.com/ussdeveloper/tauron-e-licznik-reader"
+url: "https://github.com/ussdeveloper/home-assistant-addons"
 arch:
   - amd64
   - armv7
