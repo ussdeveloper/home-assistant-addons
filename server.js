@@ -429,7 +429,7 @@ app.get('/', async (req, res) => {
           
           .chart-container {
             position: relative;
-            flex: 1;
+            height: 200px;
             background: #0d1117;
             padding: 10px 15px;
           }
@@ -577,9 +577,9 @@ app.get('/', async (req, res) => {
             <div style="display: flex; gap: 15px; align-items: center;">
               <div class="chart-title">📊 Produkcja energii</div>
               <div class="chart-tabs">
-                <div class="chart-tab active" onclick="switchChartType('monthly')">Miesięczna</div>
-                <div class="chart-tab" onclick="switchChartType('daily')">Ó24h</div>
-                <div class="chart-tab" onclick="switchChartType('yearly')">Ód roku</div>
+                <div class="chart-tab active" onclick="switchChartType('monthly', event)">Miesięczna</div>
+                <div class="chart-tab" onclick="switchChartType('daily', event)">Ó24h</div>
+                <div class="chart-tab" onclick="switchChartType('yearly', event)">Ód roku</div>
               </div>
             </div>
             <div class="chart-menu">
@@ -667,6 +667,13 @@ app.get('/', async (req, res) => {
         </div>
         
         <script>
+          // Check if Chart.js is loaded
+          if (typeof Chart === 'undefined') {
+            console.error('Chart.js not loaded');
+            document.querySelector('.chart-container').innerHTML = 
+              '<div style="color: #f85149; text-align: center; padding: 40px;">❌ Chart.js nie został załadowany</div>';
+          }
+          
           // Ingress path support for Home Assistant
           var basePath = window.location.pathname.replace(/\/$/, '');
           
@@ -675,7 +682,7 @@ app.get('/', async (req, res) => {
           var chart = null;
           var currentChartType = 'monthly'; // default
           
-          function switchChartType(type) {
+          function switchChartType(type, event) {
             currentChartType = type;
             
             // Update active tab
@@ -683,7 +690,9 @@ app.get('/', async (req, res) => {
             for (var i = 0; i < tabs.length; i++) {
               tabs[i].classList.remove('active');
             }
-            event.target.classList.add('active');
+            if (event && event.target) {
+              event.target.classList.add('active');
+            }
             
             // Update title and options
             var titleEl = document.querySelector('.chart-title');
@@ -791,50 +800,64 @@ app.get('/', async (req, res) => {
                 
                 var newCtx = document.getElementById('energyChart').getContext('2d');
                 
-                chart = new Chart(newCtx, {
-                  type: 'line',
-                  data: {
-                    labels: data.labels,
-                    datasets: datasets
-                  },
-                  options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        display: false
-                      },
-                      tooltip: {
-                        mode: 'index',
-                        intersect: false
-                      }
+                if (typeof Chart === 'undefined') {
+                  console.error('Chart.js not available for chart creation');
+                  document.querySelector('.chart-container').innerHTML = 
+                    '<div style="color: #f85149; text-align: center; padding: 40px;">❌ Chart.js niedostępny</div>';
+                  return;
+                }
+                
+                try {
+                  chart = new Chart(newCtx, {
+                    type: 'line',
+                    data: {
+                      labels: data.labels,
+                      datasets: datasets
                     },
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        grid: {
-                          color: '#21262d'
+                    options: {
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          display: false
                         },
-                        ticks: {
-                          color: '#8b949e',
-                          font: { size: 10 },
-                          callback: function(value) {
-                            return value + ' kWh';
-                          }
+                        tooltip: {
+                          mode: 'index',
+                          intersect: false
                         }
                       },
-                      x: {
-                        grid: {
-                          color: '#21262d'
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          grid: {
+                            color: '#21262d'
+                          },
+                          ticks: {
+                            color: '#8b949e',
+                            font: { size: 10 },
+                            callback: function(value) {
+                              return value + ' kWh';
+                            }
+                          }
                         },
-                        ticks: {
-                          color: '#8b949e',
-                          font: { size: 10 }
+                        x: {
+                          grid: {
+                            color: '#21262d'
+                          },
+                          ticks: {
+                            color: '#8b949e',
+                            font: { size: 10 }
+                          }
                         }
                       }
                     }
-                  }
-                });
+                  });
+                } catch (chartError) {
+                  console.error('Chart creation error:', chartError);
+                  document.querySelector('.chart-container').innerHTML = 
+                    '<div style="color: #f85149; text-align: center; padding: 40px;">❌ Błąd tworzenia wykresu: ' + chartError.message + '</div>';
+                  return;
+                }
               })
             .catch(function(err) {
               console.error('Chart update error:', err);
