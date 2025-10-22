@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const mysql = require('mysql2/promise');
 const cron = require('node-cron');
 const { spawn } = require('child_process');
@@ -586,7 +586,7 @@ app.get('/', async (req, res) => {
               <div class="checkbox-group" id="chartOptions">
                 <label>
                   <input type="checkbox" id="showProduction" checked onchange="updateChart()">
-                  <span>� Produkcja</span>
+                  <span>🟢 Produkcja</span>
                 </label>
               </div>
               <button class="btn btn-secondary" onclick="runNow()">▶️ Uruchom</button>
