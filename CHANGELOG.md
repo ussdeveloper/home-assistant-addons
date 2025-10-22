@@ -2,6 +2,14 @@
 
 # Changelog
 
+## [3.1.2] - 2025-10-22
+
+### Fixed
+- **Home Assistant Ingress support** - Added proper ingress proxy handling with X-Ingress-Path header
+- **Dynamic port configuration** - Port 8099 for ingress mode, configurable for standalone
+- **Relative URL paths** - All API calls now use relative paths for ingress compatibility
+- **JavaScript base path** - Added automatic base path detection for iframe embedding
+
 ## [3.1.1] - 2025-10-22
 
 ### Fixed

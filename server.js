@@ -5,7 +5,19 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 
 const app = express();
-const PORT = 8765;
+
+// Home Assistant Ingress support
+app.use((req, res, next) => {
+  const ingressPath = req.headers['x-ingress-path'] || '';
+  req.ingressPath = ingressPath;
+  next();
+});
+
+// Serve static assets with ingress path support
+app.use((req, res, next) => {
+  res.locals.ingressPath = req.ingressPath || '';
+  next();
+});
 
 // Load configuration
 let config;
@@ -38,6 +50,9 @@ try {
   console.log('❌ Failed to load configuration:', err.message);
   process.exit(1);
 }
+
+// Use ingress port (8099) for Home Assistant, fallback to config or 8765
+const PORT = process.env.HASSIO_TOKEN ? 8099 : (config.http?.port || 8765);
 
 // Mask password for logging
 const maskPassword = (password) => {
@@ -560,6 +575,9 @@ app.get('/', async (req, res) => {
         </div>
         
         <script>
+          // Ingress path support for Home Assistant
+          const basePath = window.location.pathname.replace(/\/$/, '');
+          
           // Chart setup
           const ctx = document.getElementById('energyChart').getContext('2d');
           let chart = null;
@@ -569,8 +587,8 @@ app.get('/', async (req, res) => {
             const showConsumption = document.getElementById('showConsumption').checked;
             
             try {
-              // Fetch real data from API
-              const response = await fetch('/api/chart-data');
+              // Fetch real data from API (use relative path for ingress)
+              const response = await fetch(basePath + '/api/chart-data');
               const data = await response.json();
               
               if (!data.success) {
@@ -653,7 +671,7 @@ app.get('/', async (req, res) => {
           
           function runNow() {
             if (confirm('Uruchomić pobieranie danych teraz?')) {
-              fetch('/run-now').then(() => {
+              fetch(basePath + '/run-now').then(() => {
                 setTimeout(() => location.reload(), 2000);
               });
             }
@@ -760,7 +778,7 @@ app.get('/api/chart-data', async (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.1.1 ===');
+  console.log('🎯 === Tauron Reader Addon v3.1.2 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
