@@ -1,8 +1,16 @@
 # Changelog
 
-## [3.4.1] - 2025-10-22
+## [3.4.1] - 2025-10-22 🏆 **MILESTONE RELEASE**
 ### Fixed
 - **Missing index.html in Docker container**: Added COPY index.html ./ to Dockerfile to fix "ENOENT: no such file or directory" error when loading the web interface
+
+### 🎯 **Milestone Achievement**
+- **Multi-year chart selection** fully functional with checkbox interface
+- **12-month scale guarantee** implemented and working
+- **Production/consumption toggles** restored and operational
+- **Home Assistant addon** ready for production use
+- **Web interface** loads correctly in HA sidebar
+- **Final fixes** to be added in upcoming patch releases
 
 ## [3.4.0] - 2025-10-22
 ### Added
