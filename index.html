@@ -322,6 +322,13 @@
       <div class="section-content">
 
       <div class="status-item">
+        <div class="status-label">SUMA PRODUKCJI</div>
+        <div id="totalProductionSummary">
+          <!-- Total production by year will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <div class="status-item">
         <div class="status-label">OSTATNIA AKTUALIZACJA</div>
         <div class="status-value">{{LATEST_UPDATE}}</div>
       </div>
@@ -505,8 +512,8 @@
             var paletteIndex = yearIndex % yearColorPalettes.length;
             var colors = yearColorPalettes[paletteIndex];
 
-            // Calculate opacity gradient within the year (0.6 to 0.9 for better visibility)
-            var baseOpacity = 0.6;
+            // Calculate opacity gradient within the year (0.4 to 0.7 for lighter transparency)
+            var baseOpacity = 0.4;
 
             // Always show production (with checkbox control)
             if (showProduction) {
@@ -702,16 +709,37 @@
         });
     }
 
-    function runNow() {
-      if (confirm('Rozpocząć odświeżanie danych Tauron?')) {
-        fetch(basePath + '/run-now').then(function() {
-          setTimeout(function() { location.reload(); }, 2000);
+    function loadTotalProduction() {
+      fetch(basePath + '/api/total-production')
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          if (data.success && data.totals) {
+            var container = document.getElementById('totalProductionSummary');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            // Sort years descending (newest first)
+            var sortedYears = Object.keys(data.totals).sort(function(a, b) { return b - a; });
+
+            sortedYears.forEach(function(year) {
+              var total = data.totals[year];
+              var div = document.createElement('div');
+              div.className = 'status-value';
+              div.style.cssText = 'font-size: 11px; margin-bottom: 2px;';
+              div.textContent = year + ': ' + total + ' kWh ☀️';
+              container.appendChild(div);
+            });
+          }
+        })
+        .catch(function(err) {
+          console.error('Failed to load total production:', err);
         });
-      }
     }
 
     // Initialize
     loadAvailableYears();
+    loadTotalProduction();
     updateChart();
 
     // Auto-refresh every 60 seconds

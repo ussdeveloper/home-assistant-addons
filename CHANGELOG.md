@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.7.0] - 2025-10-22
+### Added
+- **Total Production Summary**: New section showing total production (kWh) for each year
+- **SUMA PRODUKCJI section**: Displays yearly totals in descending order (newest first)
+- **Enhanced transparency**: Charts now use lighter transparency (40%-70% opacity) for better visual layering
+
+### Technical Details
+- **New API endpoint `/api/total-production`**: Returns total production aggregated by year
+- **Dynamic summary display**: Automatically updates with available data
+- **Improved chart transparency**: Reduced opacity range for better multi-year visualization
+- **UI integration**: Summary section added to status panel with yearly breakdown
+
 ## [3.6.0] - 2025-10-22
 ### Added
 - **New API endpoint `/api/chart-data`**: Restored missing 24-hour hourly data endpoint for real-time energy charts

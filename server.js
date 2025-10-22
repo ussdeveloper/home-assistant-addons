@@ -680,9 +680,48 @@ app.get('/api/chart-data', async (req, res) => {
   }
 });
 
+// API endpoint for total production by year
+app.get('/api/total-production', async (req, res) => {
+  try {
+    const db = await mysql.createConnection({
+      host: config.database.host,
+      port: config.database.port,
+      user: config.database.user,
+      password: config.database.password,
+      database: config.database.name
+    });
+
+    // Get total production for each year
+    const [rows] = await db.execute(`
+      SELECT
+        YEAR(ts_real) as year,
+        SUM(oze) / 1000 as total_production
+      FROM ${config.database.table}
+      WHERE ts_real IS NOT NULL
+      GROUP BY year
+      ORDER BY year DESC
+    `);
+
+    await db.end();
+
+    const totals = {};
+    rows.forEach(row => {
+      totals[row.year] = parseFloat(row.total_production || 0).toFixed(1);
+    });
+
+    res.json({
+      success: true,
+      totals: totals
+    });
+  } catch (err) {
+    console.log('❌ Total production error:', err.message);
+    res.json({ success: false, error: err.message });
+  }
+});
+
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.6.0 ===');
+  console.log('🎯 === Tauron Reader Addon v3.7.0 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
