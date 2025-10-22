@@ -10,12 +10,30 @@ const PORT = 8765;
 // Load configuration
 let config;
 try {
-  // Try Home Assistant path first, then local fallback
-  const configPath = fs.existsSync('/data/options.json') 
-    ? '/data/options.json' 
-    : './options.json';
-  config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  // Try multiple config paths for Home Assistant compatibility
+  let configPath;
+  if (fs.existsSync('/data/options.json')) {
+    configPath = '/data/options.json';
+  } else if (fs.existsSync('/app/tauron-db-config.json')) {
+    configPath = '/app/tauron-db-config.json';
+  } else if (fs.existsSync('./tauron-db-config.json')) {
+    configPath = './tauron-db-config.json';
+  } else if (fs.existsSync('./options.json')) {
+    configPath = './options.json';
+  } else {
+    throw new Error('No configuration file found!');
+  }
+  
+  const rawConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
   console.log(`✅ Loaded config from ${configPath}`);
+  
+  // Normalize config structure for both Home Assistant and standalone modes
+  config = {
+    database: rawConfig.database || rawConfig.db,
+    tauron: rawConfig.tauron,
+    schedule: rawConfig.schedule || { times: ['02:00', '10:00'] },
+    http: rawConfig.http || { port: 8765 }
+  };
 } catch (err) {
   console.log('❌ Failed to load configuration:', err.message);
   process.exit(1);
@@ -704,7 +722,7 @@ app.get('/api/chart-data', async (req, res) => {
       port: config.database.port,
       user: config.database.user,
       password: config.database.password,
-      database: config.database.database
+      database: config.database.name
     });
 
     // Get hourly data for last 24 hours
@@ -742,7 +760,7 @@ app.get('/api/chart-data', async (req, res) => {
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.1.0 ===');
+  console.log('🎯 === Tauron Reader Addon v3.1.1 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());

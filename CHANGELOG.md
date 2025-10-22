@@ -2,6 +2,13 @@
 
 # Changelog
 
+## [3.1.1] - 2025-10-22
+
+### Fixed
+- **Configuration loading** - Fixed database name reference in chart API endpoint
+- **Multi-path config support** - Improved config file detection for Home Assistant and standalone modes
+- **Startup logging** - Enhanced start.sh with better error messages and diagnostics
+
 ## [3.1.0] - 2025-10-22
 
 ### Added
