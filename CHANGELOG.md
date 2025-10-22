@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.9.0] - 2025-10-22
+### Changed
+- **Accurate date labels**: Changed "DZISIAJ" to "WCZORAJ" and "WCZORAJ" to "PRZEDWCZORAJ" to correctly reflect data age
+- **Chart opacity set to 0.8**: Fixed chart transparency to exactly 0.8 opacity as requested
+
+### Technical Details
+- **Label accuracy**: Status labels now accurately represent the age of displayed data
+- **Chart opacity**: Set baseOpacity to 0.8 for consistent transparency across all charts
+
 ## [3.8.0] - 2025-10-22
 ### Changed
 - **Date labels shifted back by one day**: "DZISIAJ" now shows yesterday's data, "WCZORAJ" shows day before yesterday's data (based on real_ts)

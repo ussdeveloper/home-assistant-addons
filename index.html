@@ -334,7 +334,7 @@
       </div>
 
       <div class="status-item">
-        <div class="status-label">DZISIAJ</div>
+        <div class="status-label">WCZORAJ</div>
         <div class="status-value">⚡ {{TODAY_CONSUMPTION}} kWh zużycie</div>
         <div class="status-value">☀️ {{TODAY_PRODUCTION}} kWh produkcja</div>
       </div>
@@ -346,7 +346,7 @@
       </div>
 
       <div class="status-item">
-        <div class="status-label">WCZORAJ</div>
+        <div class="status-label">PRZEDWCZORAJ</div>
         <div class="status-value">⚡ {{YESTERDAY_CONSUMPTION}} kWh zużycie</div>
         <div class="status-value">☀️ {{YESTERDAY_PRODUCTION}} kWh produkcja</div>
       </div>
@@ -512,8 +512,8 @@
             var paletteIndex = yearIndex % yearColorPalettes.length;
             var colors = yearColorPalettes[paletteIndex];
 
-            // Calculate opacity gradient within the year (0.5 to 0.8 for lightly transparent)
-            var baseOpacity = 0.5;
+            // Calculate opacity gradient within the year (0.8 for lightly transparent)
+            var baseOpacity = 0.8;
 
             // Always show production (with checkbox control)
             if (showProduction) {
