@@ -635,9 +635,54 @@ app.get('/api/available-years', async (req, res) => {
   }
 });
 
+// API endpoint for chart data (last 24 hours)
+app.get('/api/chart-data', async (req, res) => {
+  try {
+    const db = await mysql.createConnection({
+      host: config.database.host,
+      port: config.database.port,
+      user: config.database.user,
+      password: config.database.password,
+      database: config.database.name
+    });
+
+    // Get hourly data for last 24 hours
+    const [rows] = await db.execute(`
+      SELECT
+        DATE_FORMAT(ts_real, '%Y-%m-%d %H:00:00') as hour,
+        SUM(ec) / 1000 as consumption,
+        SUM(oze) / 1000 as production
+      FROM ${config.database.table}
+      WHERE ts_real >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+      GROUP BY hour
+      ORDER BY hour ASC
+    `);
+
+    await db.end();
+
+    const labels = rows.map(r => {
+      const date = new Date(r.hour);
+      const hours = date.getHours();
+      return hours + ':00';
+    });
+    const consumption = rows.map(r => parseFloat((r.consumption || 0)).toFixed(2));
+    const production = rows.map(r => parseFloat((r.production || 0)).toFixed(2));
+
+    res.json({
+      success: true,
+      labels,
+      consumption,
+      production
+    });
+  } catch (err) {
+    console.log('❌ Chart data error:', err.message);
+    res.json({ success: false, error: err.message });
+  }
+});
+
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.5.0 ===');
+  console.log('🎯 === Tauron Reader Addon v3.6.0 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());

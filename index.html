@@ -480,26 +480,47 @@
           var datasets = [];
           var dataLength = 12; // Always 12 months
 
-          // Create opacity gradient - newer years have higher opacity
-          var yearCount = yearDataArray.length;
+          // Define color palettes for different years
+          var yearColorPalettes = [
+            // Year 1: Blue tones
+            { production: '#1f77b4', consumption: '#aec7e8' },
+            // Year 2: Green tones
+            { production: '#2ca02c', consumption: '#98df8a' },
+            // Year 3: Orange tones
+            { production: '#ff7f0e', consumption: '#ffbb78' },
+            // Year 4: Red tones
+            { production: '#d62728', consumption: '#ff9896' },
+            // Year 5: Purple tones
+            { production: '#9467bd', consumption: '#c5b0d5' },
+            // Year 6: Brown tones
+            { production: '#8c564b', consumption: '#c49c94' },
+            // Year 7: Pink tones
+            { production: '#e377c2', consumption: '#f7b6d2' },
+            // Year 8: Gray tones
+            { production: '#7f7f7f', consumption: '#c7c7c7' }
+          ];
 
           yearDataArray.forEach(function(yearData, yearIndex) {
-            // Calculate opacity: older years (0.1) to newer years (0.8)
-            var baseOpacity = 0.1 + (yearIndex / yearCount) * 0.7;
+            // Get color palette for this year (cycle through palettes if more than 8 years)
+            var paletteIndex = yearIndex % yearColorPalettes.length;
+            var colors = yearColorPalettes[paletteIndex];
+
+            // Calculate opacity gradient within the year (0.6 to 0.9 for better visibility)
+            var baseOpacity = 0.6;
 
             // Always show production (with checkbox control)
             if (showProduction) {
               datasets.push({
                 label: 'Produkcja ' + yearData.year + ' (kWh)',
                 data: yearData.production,
-                borderColor: '#3fb950',
+                borderColor: colors.production,
                 backgroundColor: yearData.production.map(function(_, i) {
-                  return 'rgba(63, 185, 80, ' + (baseOpacity + (i / dataLength) * 0.3) + ')';
+                  return colors.production.replace(')', ', ' + (baseOpacity + (i / dataLength) * 0.3) + ')').replace('rgb', 'rgba');
                 }),
                 tension: 0.4,
                 fill: true,
                 borderWidth: 2,
-                pointBackgroundColor: '#3fb950',
+                pointBackgroundColor: colors.production,
                 pointBorderColor: '#ffffff',
                 pointBorderWidth: 1,
                 pointRadius: 3
@@ -511,14 +532,14 @@
               datasets.push({
                 label: 'Zużycie ' + yearData.year + ' (kWh)',
                 data: yearData.consumption,
-                borderColor: '#f85149',
+                borderColor: colors.consumption,
                 backgroundColor: yearData.consumption.map(function(_, i) {
-                  return 'rgba(248, 81, 73, ' + (baseOpacity + (i / dataLength) * 0.3) + ')';
+                  return colors.consumption.replace(')', ', ' + (baseOpacity + (i / dataLength) * 0.3) + ')').replace('rgb', 'rgba');
                 }),
                 tension: 0.4,
                 fill: true,
                 borderWidth: 2,
-                pointBackgroundColor: '#f85149',
+                pointBackgroundColor: colors.consumption,
                 pointBorderColor: '#ffffff',
                 pointBorderWidth: 1,
                 pointRadius: 3

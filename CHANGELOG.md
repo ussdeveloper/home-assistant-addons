@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.6.0] - 2025-10-22
+### Added
+- **New API endpoint `/api/chart-data`**: Restored missing 24-hour hourly data endpoint for real-time energy charts
+- **Year-specific color palettes**: Implemented 8 distinct color schemes (blue, green, orange, red, purple, brown, pink, gray) for different years instead of opacity gradients
+- **Enhanced chart visualization**: Each year now has unique colors for better distinction in multi-year comparisons
+
+### Technical Details
+- **Color cycling**: 8 predefined color palettes that cycle for years beyond 8
+- **Improved chart readability**: Different hues for each year instead of same colors with varying opacity
+- **24-hour endpoint restored**: `/api/chart-data` returns hourly aggregated data for last 24 hours
+- **Chart.js compatibility**: Maintained existing chart structure while enhancing visual differentiation
+
 ## [3.5.0] - 2025-10-22
 ### Added
 - **New API endpoint `/api/available-years`**: Dynamically queries database for available years with data
