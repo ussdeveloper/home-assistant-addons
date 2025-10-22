@@ -1041,8 +1041,7 @@ async function start() {
     process.exit(1);
   }
   
-  // Test Tauron service (non-critical)
-  await testTauronService();
+  console.log('⏹️ Skipping Tauron service test to avoid rate limiting');
   
   // Setup cron jobs
   console.log('⏰ Setting up scheduled tasks...');
@@ -1063,8 +1062,8 @@ async function start() {
     }
     console.log('✅ === Addon ready ===\n');
     
-    // Perform initial data fetch after startup
-    console.log('🚀 Performing initial data fetch in 10 seconds...');
+    // Perform initial data fetch after startup with longer delay to avoid rate limiting
+    console.log('🚀 Performing initial data fetch in 60 seconds...');
     setTimeout(() => {
       fetchTauronData(false).then(result => {
         if (result.success) {
@@ -1073,7 +1072,7 @@ async function start() {
           console.log('⚠️ Initial data fetch failed:', result.error);
         }
       });
-    }, 10000); // Wait 10 seconds after startup
+    }, 60000); // Wait 60 seconds after startup to avoid rate limiting
   });
 }
 

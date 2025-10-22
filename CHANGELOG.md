@@ -2,6 +2,12 @@
 
 # Changelog
 
+## [3.3.4] - 2025-10-22
+### Fixed
+- Disabled Tauron service test at startup to avoid rate limiting
+- Increased initial data fetch delay from 10s to 60s to prevent login blocks
+- Tauron API blocks too frequent login attempts (multiple requests in short time)
+
 ## [3.3.3] - 2025-10-22
 ### Fixed
 - Replaced const/let with var for better browser compatibility
