@@ -2,6 +2,30 @@
 
 This Home Assistant addon fetches energy consumption and production data from Tauron eLicznik service and inserts it into a MySQL database using the standalone `tauron-reader` binary.
 
+## 🎨 Modern Web Interface (v3.1.0)
+
+The addon features a professional dark-themed dashboard with:
+
+- **📊 Interactive Charts**: Real-time energy visualization with Chart.js
+  - Toggle between production and consumption data
+  - Hourly data for the last 24 hours
+  - Smooth animations and responsive design
+  
+- **📝 Activity Logs**: Scrollable log section showing:
+  - Recent data updates and operations
+  - Success/error indicators
+  - Timestamps in local format
+  
+- **ℹ️ Status Dashboard**: Comprehensive overview including:
+  - Today's energy statistics
+  - This week's summary
+  - Yesterday's comparison
+  - Database and Tauron connection status
+  - Scheduled run times
+  
+- **🔄 Auto-refresh**: Chart updates every 60 seconds
+- **📱 Responsive**: Adapts to Home Assistant webview size
+
 ## Architecture
 
 The addon consists of two main components:
