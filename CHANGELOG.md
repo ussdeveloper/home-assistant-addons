@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.5.0] - 2025-10-22
+### Added
+- **New API endpoint `/api/available-years`**: Dynamically queries database for available years with data
+- **Database-driven year selection**: Year checkboxes now populated from actual data in database instead of hardcoded values
+- **Automatic year detection**: System automatically discovers which years have energy data available
+
+### Technical Details
+- **Query optimization**: `SELECT DISTINCT YEAR(ts_real) as year FROM ${table} WHERE ts_real IS NOT NULL ORDER BY year DESC`
+- **API response format**: Returns `{success: true, years: [2023, 2024, 2025], count: 3}`
+- **UI integration**: Year checkboxes automatically populated and sorted (newest first)
+
 ## [3.4.4] - 2025-10-22
 ### Fixed
 - **Home Assistant ingress API routing**: Corrected basePath logic for ingress mode to use full ingress path instead of relative paths

@@ -601,8 +601,8 @@ app.get('/api/chart-data-2years', async (req, res) => {
   }
 });
 
-// API endpoint for chart data (last 24 hours)
-app.get('/api/chart-data', async (req, res) => {
+// API endpoint for available years
+app.get('/api/available-years', async (req, res) => {
   try {
     const db = await mysql.createConnection({
       host: config.database.host,
@@ -612,42 +612,32 @@ app.get('/api/chart-data', async (req, res) => {
       database: config.database.name
     });
 
-    // Get hourly data for last 24 hours
+    // Get all distinct years that have data
     const [rows] = await db.execute(`
-      SELECT 
-        DATE_FORMAT(ts_real, '%Y-%m-%d %H:00:00') as hour,
-        SUM(ec) as consumption,
-        SUM(oze) as production
+      SELECT DISTINCT YEAR(ts_real) as year
       FROM ${config.database.table}
-      WHERE ts_real >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
-      GROUP BY hour
-      ORDER BY hour ASC
+      WHERE ts_real IS NOT NULL
+      ORDER BY year DESC
     `);
 
     await db.end();
 
-    const labels = rows.map(r => {
-      const date = new Date(r.hour);
-      return date.getHours() + 'h';
-    });
-    const consumption = rows.map(r => parseFloat((r.consumption || 0) / 1000).toFixed(2)); // Convert to kWh
-    const production = rows.map(r => parseFloat((r.production || 0) / 1000).toFixed(2));
+    const years = rows.map(r => r.year);
 
     res.json({
       success: true,
-      labels,
-      consumption,
-      production
+      years: years,
+      count: years.length
     });
   } catch (err) {
-    console.log('❌ Chart data error:', err.message);
+    console.log('❌ Available years error:', err.message);
     res.json({ success: false, error: err.message });
   }
 });
 
 // Start server
 async function start() {
-  console.log('🎯 === Tauron Reader Addon v3.4.4 ===');
+  console.log('🎯 === Tauron Reader Addon v3.5.0 ===');
   console.log('📅 Startup time:', new Date().toISOString());
   console.log('🔧 Node.js version:', process.version);
   console.log('📁 Working directory:', process.cwd());
