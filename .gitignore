@@ -11,6 +11,11 @@ buffer/
 *.log
 *.log.jsonl
 
+# Build artifacts
+tauron-reader.exe
+tauron-reader-linux
+tauron-reader/tauron-reader
+
 # System files
 .DS_Store
 Thumbs.db
