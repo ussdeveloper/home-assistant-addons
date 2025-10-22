@@ -1061,18 +1061,7 @@ async function start() {
       console.log(`🔗 Direct access: http://YOUR_HA_IP:${PORT}`);
     }
     console.log('✅ === Addon ready ===\n');
-    
-    // Perform initial data fetch after startup with longer delay to avoid rate limiting
-    console.log('🚀 Performing initial data fetch in 60 seconds...');
-    setTimeout(() => {
-      fetchTauronData(false).then(result => {
-        if (result.success) {
-          console.log('✅ Initial data fetch completed');
-        } else {
-          console.log('⚠️ Initial data fetch failed:', result.error);
-        }
-      });
-    }, 60000); // Wait 60 seconds after startup to avoid rate limiting
+    console.log('ℹ️ Data fetch will run at scheduled times or via manual trigger from UI');
   });
 }
 

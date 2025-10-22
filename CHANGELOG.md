@@ -2,6 +2,12 @@
 
 # Changelog
 
+## [3.3.5] - 2025-10-22
+### Changed
+- Removed automatic initial data fetch at startup
+- Data is now fetched only at scheduled times or via manual trigger (▶️ Uruchom button)
+- Prevents rate limiting issues with Tauron API at addon startup
+
 ## [3.3.4] - 2025-10-22
 ### Fixed
 - Disabled Tauron service test at startup to avoid rate limiting
