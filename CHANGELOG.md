@@ -2,6 +2,11 @@
 
 # Changelog
 
+## [3.3.1] - 2025-10-22
+### Fixed
+- Fixed syntax error with nested template literals in JavaScript code
+- Replaced backticks with single quotes in innerHTML assignments
+
 ## [3.3.0] - 2025-10-22
 
 ### Added
