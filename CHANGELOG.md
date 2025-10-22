@@ -1,6 +1,9 @@
 # Changelog
 
-# Changelog
+## [3.3.9] - 2025-10-22
+### Fixed
+- Fixed corrupted UTF-8 character in HTML template causing "Unexpected token 'var'" JavaScript error
+- Updated version number in server.js to v3.3.8
 
 ## [3.3.8] - 2025-10-22
 ### Fixed

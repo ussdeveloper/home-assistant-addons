@@ -16,14 +16,42 @@ User → HA Ingress (port 8099) → Node.js server → spawns → tauron-reader 
 
 ## Critical Development Patterns
 
-### 1. Version Management
-**ALWAYS increment version in 3 files simultaneously:**
+### 1. Version Management & Release Process
+**ALWAYS increment version using semantic versioning (major.minor.patch) and update 3 files simultaneously:**
+
 ```javascript
+// Version increment rules:
+MAJOR (X.y.z): Breaking changes, API changes, major rewrites
+MINOR (x.Y.z): New features, significant improvements
+PATCH (x.y.Z): Bug fixes, small improvements, compatibility fixes
+
 // Must update together for HA update mechanism
-config.yaml: version: "3.3.6"
-CHANGELOG.md: ## [3.3.6] - 2025-10-22
-server.js: console.log('🎯 === Tauron Reader Addon v3.3.6 ==='); // if exists
+config.yaml: version: "3.3.8"
+CHANGELOG.md: ## [3.3.8] - 2025-10-22
+server.js: console.log('🎯 === Tauron Reader Addon v3.3.8 ==='); // if exists
 ```
+
+**Release workflow:**
+```bash
+# 1. Update version in all 3 files
+# 2. Commit changes
+git add -A
+git commit -m "v3.3.8 - Description of changes"
+
+# 3. Push to main branch
+git push origin main
+
+# 4. Create and push tag
+git tag v3.3.8 -m "Version 3.3.8 - Description"
+git push origin v3.3.8
+
+# 5. Home Assistant will detect update automatically
+```
+
+**Version increment examples:**
+- Bug fix (syntax error): `3.3.7` → `3.3.8` (patch)
+- New chart type: `3.3.8` → `3.4.0` (minor)
+- Major rewrite: `3.4.0` → `4.0.0` (major)
 
 ### 2. Browser Compatibility (Home Assistant iframe)
 **Home Assistant's iframe has strict JavaScript limitations:**
@@ -49,12 +77,41 @@ fetch(apiUrl)
 
 // ✅ Current pattern (v3.3.5+):
 // - Only test database connection at startup
-// - NO initial data fetch
-// - Fetch only via scheduled cron OR manual button click
-// - testTauronService() disabled to prevent rate limits
+- NO initial data fetch
+- Fetch only via scheduled cron OR manual button click
+- testTauronService() disabled to prevent rate limits
 ```
 
-### 4. Configuration Loading
+### 4. Release Management & Repository Structure
+**Home Assistant addon releases are managed via Git tags. Always create releases after code changes:**
+
+**Repository structure for releases:**
+```
+home-assistant-addons/
+├── .github/copilot-instructions.md  # AI agent instructions
+├── config.yaml                      # HA addon manifest (version, ingress, etc.)
+├── server.js                        # Main Node.js application
+├── tauron-reader                    # Go binary executable
+├── Dockerfile                       # Container build instructions
+├── start.sh                         # Startup script
+├── CHANGELOG.md                     # Version history
+└── README.md                        # User documentation
+```
+
+**Home Assistant addon configuration:**
+- Addon is published from repository root (current setup)
+- To use specific directory: modify `config.yaml` url to point to subdirectory
+- Current setup: `url: "https://github.com/ussdeveloper/home-assistant-addons"`
+- For subdirectory: `url: "https://github.com/ussdeveloper/home-assistant-addons/tree/main/addon-directory"`
+
+**Post-release checklist:**
+- ✅ Version updated in config.yaml, CHANGELOG.md, server.js
+- ✅ Code committed and pushed to main branch
+- ✅ Git tag created and pushed
+- ✅ Home Assistant addon store detects update
+- ✅ Test addon installation/update in HA
+
+### 5. Configuration Loading
 **Multi-path fallback for HA vs standalone:**
 ```javascript
 // Order matters for config detection:
@@ -64,7 +121,7 @@ fetch(apiUrl)
 4. ./options.json             // Fallback
 ```
 
-### 5. Ingress Path Handling
+### 6. Ingress Path Handling
 **All URLs must support Home Assistant's ingress proxy:**
 ```javascript
 // Client-side base path detection:
@@ -164,10 +221,13 @@ console.log('Chart data received:', data);
 // Look for emoji prefixes: 🔌 🚀 ✅ ❌ ⚠️
 ```
 
-## Current State (v3.3.6)
+## Current State (v3.3.9)
 
 - ✅ Browser compatibility: ES5 syntax, no async/await in client code
 - ✅ Rate limiting: No auto-fetch, no service test at startup
 - ✅ Charts: Three tab types with working API endpoints
 - ✅ Ingress: Full Home Assistant sidebar integration on port 8099
+- ✅ Version management: Semantic versioning with 3-file sync
+- ✅ Release process: Git tags for Home Assistant addon updates
+- ✅ UTF-8 encoding: Fixed corrupted characters in HTML templates
 - ⚠️ Known limitation: Tauron API occasionally returns malformed CSV (parse errors unavoidable)
