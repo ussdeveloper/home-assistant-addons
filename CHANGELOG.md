@@ -1,5 +1,9 @@
 # Changelog
 
+## [3.9.6] - 2025-10-23
+### Changed
+- **Updated tauron-reader binary**: New version of the Go binary with latest improvements
+
 ## [3.9.5] - 2025-10-23
 ### Changed
 - **New binary release**: Updated tauron-reader binary with latest improvements
