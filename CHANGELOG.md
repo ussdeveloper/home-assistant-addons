@@ -1,5 +1,9 @@
 # Changelog
 
+## [3.9.5] - 2025-10-23
+### Changed
+- **New binary release**: Updated tauron-reader binary with latest improvements
+
 ## [3.9.2] - 2025-10-22
 ### Fixed
 - **True transparency on charts**: Background fills now use RGBA converted from hex colors (previously hex colors stayed opaque)
